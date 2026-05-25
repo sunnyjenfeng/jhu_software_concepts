@@ -2,7 +2,7 @@
 
 This is a personal website built with Flask for Module 1.
 
-# Project Structure
+## Project Structure
 
 ```text
 Module_1/
