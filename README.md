@@ -4,6 +4,7 @@ This is a personal website built with Flask for Module 1.
 
 # Project Structure
 
+```text
 Module_1/
 ├── __init__.py
 ├── run.py
