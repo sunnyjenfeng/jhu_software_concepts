@@ -1,11 +1,30 @@
 {% extends 'base.html' %}
 
 {% block header %}
-  <h2>{% block title %}Home{% endblock title %}</h2>
+  <h2 class="home-title">{% block title %}Jennifer Feng{% endblock title %}</h2>
 {% endblock header %}
 
 {% block content %}
-  <p>
-    Learn more about me by visiting the <a href="{{ url_for('pages.contact') }}">Contact page</a>.
-  </p>
+  <div class="home-layout">
+    <div class="home-text">
+      <p>I currently work full time as a Senior Data Scientist in a bank. I am taking this course as a pre-requisite to 
+        the MS AI program. I am very excited to take this class since I have been wanted to learn how software works
+         for a long time!
+      </p> 
+       <p>A little more about me: I grew up in China and got my Bachelor's degree in Engineering in China. After that I studied Biostatistics at University of Illinois at Chicago and got a MS degree. I currently live in Minneapolis. 
+      </p> 
+      <p>In my spare time I enjoy playing badminton and pickleball, and I also love gardening. Every year I would like to grow something new besides tomatoes. I have a cat named "Wotou". He is a very sweet British short hair kitty, and he wishes to be
+     a "Taekwondo Kitty" (always put on the belt himself :-)). I have attached his photo here. 
+     </p>
+      <p>
+        Learn more about contacting me by visiting the
+        <a href="{{ url_for('pages.contact') }}">Contact page</a>.
+      </p>
+    </div>
+
+  <div class="home-image">
+    <img class="profile-photo" src="{{ url_for('static', filename='Jennifer.jpeg') }}" alt="Jennifer Feng">
+    <img class="profile-photo" src="{{ url_for('static', filename='mycat.jpg') }}" alt="My Cat">
+  </div>
+  </div>
 {% endblock content %}

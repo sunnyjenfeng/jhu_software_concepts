@@ -62,3 +62,37 @@ main {
   width: 80%;
   margin: 0 auto;
 }
+
+.home-layout {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 32px;
+}
+
+.home-text {
+  flex: 1;
+  text-align: left;
+}
+
+.home-image {
+  flex: 1;
+  text-align: right;
+}
+
+.profile-photo {
+  width: 500px;
+  max-width: 100%;
+  height: auto;
+  border-radius: 8px;
+}
+
+.home-title {
+  text-align: left;
+  width: 80%;
+  margin: 0 auto;
+}
+
+.projects-text {
+  text-align: left;
+}

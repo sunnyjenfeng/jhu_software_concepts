@@ -1,8 +1,7 @@
 
 from flask import Flask
+import pages
 
-# from Module_1 import pages
-from . import pages
 
 def create_app():
     app = Flask(__name__)
