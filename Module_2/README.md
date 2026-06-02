@@ -48,7 +48,6 @@ Due data: Sunday by 11:59pm
    llm_extend_applicant_data_part1.json
 
 
-
 #Please note: 
-There is no known bugs. 
+when I pushed llm_hosting to github, error shows the tiny llama model size was too big. So I had to push everything except the model. 
 
