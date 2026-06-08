@@ -1,0 +1,354 @@
+%PDF-1.4
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [5 0 R 7 0 R 9 0 R 11 0 R 13 0 R 15 0 R] /Count 6 >>
+endobj
+3 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Courier >>
+endobj
+4 0 obj
+<< /Length 2358 >>
+stream
+BT
+/F1 10 Tf
+72 742 Td
+14 TL
+(Limitations:) Tj
+T* () Tj
+T* (Using data from Grad Cafe sites has limitations because the data is user submitted,) Tj
+T* (anonymous, which means it has not gone through a strict data collecting process. The) Tj
+T* (data quality is highly likely to be poor. Submitted data may not be clean, and some) Tj
+T* (fields may be missing and the naming of the university may not be consistent. Further) Tj
+T* (more, applicants with waitlisted or rejected status may have little or no motication to) Tj
+T* (submit data, so that it causes bias in the data.  Since it is anonymous, it is) Tj
+T* (impossible to verify or correct the mistakes.) Tj
+T* () Tj
+T* (For example, when I calculate the percentage of international students for Fall 2026,) Tj
+T* (the numbers only describe the people who submitted data to Grad Café, not all) Tj
+T* (applicants. Another example is that when I calculate average GPAs, a lot of records do) Tj
+T* (not have GPAs available \(missing data\). The results are not reliable. Analysis results) Tj
+T* (from this data can provide some insight and trend, but can not be used for scientific) Tj
+T* (study or offical records due to the quality of the data.) Tj
+T* () Tj
+T* () Tj
+T* (------------------------------------------------------------------------------------) Tj
+T* (Explainations of each queries:) Tj
+T* () Tj
+T* (Q1: "How many entries do you have in your database who have applied for Fall 2026?") Tj
+T* () Tj
+T* (     "sql"= "SELECT count\(*\) FROM applicants where term = 'Fall 2026'") Tj
+T* () Tj
+T* (    where is used to filter the term. Count is used to count number of rows.) Tj
+T* () Tj
+T* (    Answer: 33052) Tj
+T* () Tj
+T* () Tj
+T* () Tj
+T* (Q2: "What percentage of entries are from international students \(not American or Other\)) Tj
+T* (\(to two decimal places\)?",) Tj
+T* (      "sql"= """) Tj
+T* (      SELECT ROUND\() Tj
+T* (      100.0 * SUM\(CASE WHEN us_or_international = 'International' THEN 1 ELSE 0 END\) /) Tj
+T* (      COUNT\(*\),) Tj
+T* (      2) Tj
+T* (      \) AS international_pct) Tj
+T* (      FROM applicants;) Tj
+T* (      """,) Tj
+T* (    First it create binary 1/0, when it is international, the value is 1, else it is 0. The) Tj
+T* (    sum up all the 1s and divided by the total number-- count\(*\).) Tj
+T* () Tj
+T* (   Answer: [\(Decimal\('45.22'\),\)]) Tj
+T* () Tj
+ET
+endstream
+endobj
+5 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 3 0 R >> >> /Contents 4 0 R >>
+endobj
+6 0 obj
+<< /Length 1759 >>
+stream
+BT
+/F1 10 Tf
+72 742 Td
+14 TL
+(Q3: "What is the average GPA, GRE, GRE V, GRE AW of applicants who provide these) Tj
+T* (metrics?",) Tj
+T* (      "sql"= """) Tj
+T* (      SELECT) Tj
+T* (      ROUND\(AVG\(gpa\)::numeric, 2\) AS avg_gpa,) Tj
+T* (      ROUND\(AVG\(gre\)::numeric, 2\) AS avg_gre,) Tj
+T* (      ROUND\(AVG\(gre_v\)::numeric, 2\) AS avg_gre_v,) Tj
+T* (      ROUND\(AVG\(gre_aw\)::numeric, 2\) AS avg_gre_aw) Tj
+T* (      FROM applicants;) Tj
+T* (      """,) Tj
+T* () Tj
+T* () Tj
+T* (    avg_gpa, avg_gre, avg_gre_v, avg_gre_aw = query3_output[0]) Tj
+T* () Tj
+T* (    print\("Average GPA:", avg_gpa\)) Tj
+T* (    print\("Average GRE:", avg_gre\)) Tj
+T* (    print\("Average GRE V:", avg_gre_v\)) Tj
+T* (    print\("Average GRE AW:", avg_gre_aw\)) Tj
+T* () Tj
+T* (    Take average of each corresponding vars and then round to 2 decimal points) Tj
+T* () Tj
+T* () Tj
+T* (    Answer: Average GPA: 3.78) Tj
+T* (    Average GRE: 262.00) Tj
+T* (    Average GRE V: 161.54) Tj
+T* (    Average GRE AW: 9.30) Tj
+T* () Tj
+T* (Q4: "What is their average GPA of American students in Fall 2026?",) Tj
+T* (      "sql"= """) Tj
+T* (      SELECT ROUND\(AVG\(gpa\)::numeric, 2\) AS avg_gpa) Tj
+T* (      FROM applicants) Tj
+T* (      WHERE us_or_international = 'American') Tj
+T* (      AND term = 'Fall 2026';) Tj
+T* (      """,) Tj
+T* (Where clause put filter and table average and then round to 2 decimal points.) Tj
+T* () Tj
+T* (Answer: [\(Decimal\('3.79'\),\)]) Tj
+T* () Tj
+T* (Q5: "What percent of entries for Fall 2026 are Acceptances \(to two decimal places\)?",) Tj
+T* (      "sql": """) Tj
+T* (      SELECT) Tj
+T* (      ROUND\() Tj
+T* (      100.0 * SUM\() Tj
+T* (      CASE WHEN status ILIKE '%Accepted%' THEN 1) Tj
+T* (      ELSE 0) Tj
+T* (      END) Tj
+ET
+endstream
+endobj
+7 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 3 0 R >> >> /Contents 6 0 R >>
+endobj
+8 0 obj
+<< /Length 1730 >>
+stream
+BT
+/F1 10 Tf
+72 742 Td
+14 TL
+(      \) / COUNT\(*\),) Tj
+T* (      2) Tj
+T* (      \) AS fall_2026_accept_pct) Tj
+T* (      FROM applicants) Tj
+T* (      WHERE term = 'Fall 2026';) Tj
+T* (      """) Tj
+T* (    First where clause select the term. Case when status includes "Accepted" then create) Tj
+T* (    binary 1,) Tj
+T* (    otherwise 0. Sum up all the 1s then divided by the total.) Tj
+T* (    Times 100 and round to 2 decimal to get the rounded decimal.) Tj
+T* () Tj
+T* (    Answer: [\(Decimal\('35.84'\),\)]) Tj
+T* () Tj
+T* (Q6: "What is the average GPA of applicants who applied for Fall 2026 who are) Tj
+T* (Acceptances?",) Tj
+T* (      "sql": """) Tj
+T* (      SELECT) Tj
+T* (      ROUND\(AVG\(gpa\), 2\)) Tj
+T* (      FROM applicants) Tj
+T* (      where term = 'Fall 2026' and status ILIKE '%Accepted%';) Tj
+T* (      """,) Tj
+T* () Tj
+T* (    Where clause filter the data in term and status. Then calculate average. Round to 2) Tj
+T* (    decimal points.) Tj
+T* () Tj
+T* (    Answer: 3.78) Tj
+T* () Tj
+T* (  Q7: "How many entries are from applicants who applied to JHU for a masters degrees in) Tj
+T* (  Computer Science?",) Tj
+T* (      "sql": """) Tj
+T* (      SELECT count\(*\)) Tj
+T* (      FROM applicants) Tj
+T* (      WHERE degree = 'Masters') Tj
+T* (      AND \() Tj
+T* (      program ILIKE '%Johns Hopkins%') Tj
+T* (      OR program ILIKE '%John Hopkins%') Tj
+T* (      OR program ILIKE '%JHU%') Tj
+T* (      \)) Tj
+T* (      AND program ILIKE '%computer science%';) Tj
+T* (      """,) Tj
+T* () Tj
+T* (   Where clause finds records have Johns Hopkins or JHU or John Hopkins in program, and) Tj
+T* (   Masters in degree.) Tj
+T* (   Count to count all the selected records.) Tj
+T* () Tj
+T* (   Answer: 14) Tj
+ET
+endstream
+endobj
+9 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 3 0 R >> >> /Contents 8 0 R >>
+endobj
+10 0 obj
+<< /Length 1994 >>
+stream
+BT
+/F1 10 Tf
+72 742 Td
+14 TL
+() Tj
+T* (Q8: "How many entries from 2026 are acceptances from applicants who applied to) Tj
+T* (Georgetown University, MIT, Stanford University, or Carnegie Mellon University for a PhD) Tj
+T* (in Computer Science?",) Tj
+T* (      "sql": """) Tj
+T* (      SELECT COUNT\(*\)) Tj
+T* (      FROM applicants) Tj
+T* (      WHERE status = 'Accepted') Tj
+T* (      AND degree = 'PhD') Tj
+T* (      AND program ILIKE '%computer science%') Tj
+T* (      AND EXTRACT\(YEAR FROM date_added\) = 2026) Tj
+T* (      AND \() Tj
+T* (      program ILIKE '%Georgetown%') Tj
+T* (      OR program ILIKE '%Stanford%') Tj
+T* (      OR program ILIKE '%Carnegie Mellon%') Tj
+T* (      OR program ILIKE '%Massachusetts Institute of Technology%') Tj
+T* (      OR program ILIKE '%MIT%') Tj
+T* (      \);) Tj
+T* (      """,) Tj
+T* () Tj
+T* (Where clause finds records status = 'Accepted' AND degree = 'PhD' and program includes) Tj
+T* (the university names,) Tj
+T* (Extract the year from date_added.) Tj
+T* (Count to count all the selected records.) Tj
+T* () Tj
+T* (Answer: 0) Tj
+T* () Tj
+T* () Tj
+T* (Q9: "Same as Q8, using LLM-generated program and university fields.",) Tj
+T* (      "sql": """) Tj
+T* (      SELECT COUNT\(*\) AS entries) Tj
+T* (      FROM applicants) Tj
+T* (      WHERE status ILIKE 'Accepted%') Tj
+T* (      AND degree = 'PhD') Tj
+T* (      AND llm_generated_program ILIKE '%computer science%') Tj
+T* (      AND EXTRACT\(YEAR FROM date_added\) = 2026) Tj
+T* (      AND \() Tj
+T* (      llm_generated_university ILIKE '%Georgetown%') Tj
+T* (      OR llm_generated_university ILIKE '%Stanford%') Tj
+T* (      OR llm_generated_university ILIKE '%Carnegie Mellon%') Tj
+T* (      OR llm_generated_university ILIKE '%Massachusetts Institute of Technology%') Tj
+T* (      OR llm_generated_university ILIKE '%MIT%') Tj
+T* (      \);) Tj
+T* (      """,) Tj
+T* (    Same as Question8, just use llm_generated_university and llm_generated_program instead) Tj
+T* (    of program.) Tj
+ET
+endstream
+endobj
+11 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 3 0 R >> >> /Contents 10 0 R >>
+endobj
+12 0 obj
+<< /Length 1895 >>
+stream
+BT
+/F1 10 Tf
+72 742 Td
+14 TL
+() Tj
+T* (    Answer: 0) Tj
+T* () Tj
+T* (Q10: "How many entries for students applied for Fall 2026 term for Stanford Univerity) Tj
+T* (Masters program per acceptance status? ",) Tj
+T* (      "sql": """) Tj
+T* (      SELECT) Tj
+T* (      CASE) Tj
+T* (      WHEN status ILIKE 'Accepted%' THEN 'Accepted') Tj
+T* (      WHEN status ILIKE 'Rejected%' THEN 'Rejected') Tj
+T* (      WHEN status ILIKE 'Wait listed%' THEN 'Waitlisted') Tj
+T* (      WHEN status ILIKE 'Interview%' THEN 'Interview') Tj
+T* (      ELSE status) Tj
+T* (      END AS acceptance_status,) Tj
+T* (      COUNT\(*\) AS num_entries) Tj
+T* (      FROM applicants) Tj
+T* (      WHERE term = 'Fall 2026') Tj
+T* (      AND degree = 'Masters') Tj
+T* (      AND llm_generated_university ILIKE '%Stanford%') Tj
+T* (      GROUP BY acceptance_status) Tj
+T* (      ORDER BY num_entries DESC;) Tj
+T* (      """,) Tj
+T* () Tj
+T* (    Where clause put filter on term, degree, llm_generated_university. Case when created) Tj
+T* (    categorical fields based on partial match.) Tj
+T* (    Grouped by acceptance_status. Count entries per group.) Tj
+T* () Tj
+T* (    Answer: [\('Rejected', 68\), \('Accepted', 49\), \('Interview', 2\), \('Waitlisted', 2\)]) Tj
+T* () Tj
+T* () Tj
+T* (Q11: "For students applied for Fall 2026 term for Stanford Univerity Masters program and) Tj
+T* (got accepted, what is the percentage of international student?",) Tj
+T* (      "sql": """) Tj
+T* (      SELECT) Tj
+T* (      ROUND\() Tj
+T* (      100.0 * SUM\() Tj
+T* (      CASE WHEN us_or_international = 'International' THEN 1) Tj
+T* (      ELSE 0) Tj
+T* (      END) Tj
+T* (      \) / COUNT\(*\),) Tj
+T* (      2) Tj
+T* (      \) AS international_student_percent) Tj
+T* (      FROM applicants) Tj
+T* (      WHERE term = 'Fall 2026') Tj
+T* (      AND degree = 'Masters') Tj
+T* (      AND llm_generated_university ILIKE '%Stanford%') Tj
+ET
+endstream
+endobj
+13 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 3 0 R >> >> /Contents 12 0 R >>
+endobj
+14 0 obj
+<< /Length 433 >>
+stream
+BT
+/F1 10 Tf
+72 742 Td
+14 TL
+(      AND status ILIKE 'Accepted%';) Tj
+T* (      """,) Tj
+T* () Tj
+T* (Where clause put filter on term, degree, llm_generated_university and status.) Tj
+T* (Case when created binary based on us_or_international.) Tj
+T* (sum up international.) Tj
+T* (divided by total) Tj
+T* (times 100, and round to 2 decimal points.) Tj
+T* () Tj
+T* () Tj
+T* ( Answer: [\(Decimal\('38.78'\),\)]) Tj
+T* () Tj
+T* () Tj
+ET
+endstream
+endobj
+15 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 3 0 R >> >> /Contents 14 0 R >>
+endobj
+xref
+0 16
+0000000000 65535 f 
+0000000009 00000 n 
+0000000058 00000 n 
+0000000148 00000 n 
+0000000216 00000 n 
+0000002626 00000 n 
+0000002752 00000 n 
+0000004563 00000 n 
+0000004689 00000 n 
+0000006471 00000 n 
+0000006597 00000 n 
+0000008644 00000 n 
+0000008772 00000 n 
+0000010720 00000 n 
+0000010848 00000 n 
+0000011333 00000 n 
+trailer
+<< /Size 16 /Root 1 0 R >>
+startxref
+11461
+%%EOF
