@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}GradCafe Queries{% endblock %}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body>
+  <header class="shell">
+    <div class="eyebrow">Grad School Cafe Data Analysis</div>
+    <h1>Analysis</h1>
+    <p class="lede"></p>
+
+    {% if error %}
+      <div class="error">{{ error }}</div>
+    {% endif %}
+  </header>
+
+  {% block content %}{% endblock %}
+
+  <footer class="shell">
+    Refresh the page to run the queries again.
+  </footer>
+</body>
+</html>

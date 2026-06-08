@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+
+{% block title %}Analysis{% endblock %}
+
+{% block content %}
+  <main class="shell">
+    <section class="result-card actions-card">
+      <div>
+        <p><strong>Pull the latest GradCafe data</strong></p>
+        <p>
+          Click this button to scrape more data from GradCafe. It will collect recent
+          GradCafe admissions entries, and add new data to the database.
+        </p>
+
+        <form action="{{ url_for('pull_data') }}" method="post">
+          <button type="submit">Pull Data</button>
+        </form>
+      </div>
+
+      <div class="update-box">
+        <p><strong>Update Analysis</strong></p>
+        <p>
+          Refresh the analysis results using the newest data currently in the database.
+          This will wait if Pull Data is still running.
+        </p>
+
+        <form action="{{ url_for('update_analysis') }}" method="post">
+          <button type="submit">Update Analysis</button>
+        </form>
+      </div>
+
+      {% if pull_message %}
+        <p class="message">{{ pull_message }}</p>
+      {% endif %}
+    </section>
+
+    {% if results %}
+      {% for result in results %}
+        <section class="result-card">
+          <p><strong>{{ result.question }}</strong></p>
+
+          {% if result.error %}
+            <div class="error">{{ result.error }}</div>
+          {% else %}
+            <p>
+              Answer:
+              {% for row in result.rows %}
+                {% for value in row %}
+                  {{ value }}{% if not loop.last %}, {% endif %}
+                {% endfor %}
+                {% if not loop.last %}<br>{% endif %}
+              {% endfor %}
+            </p>
+          {% endif %}
+        </section>
+      {% endfor %}
+    {% else %}
+      <p>No results to display.</p>
+    {% endif %}
+  </main>
+{% endblock %}
