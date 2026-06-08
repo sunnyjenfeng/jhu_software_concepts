@@ -49,3 +49,5 @@ Module_3/
 6. # Open the browser: 
     http://localhost:8080
 
+7. If Limitations.pdf can not be opened, please use limitations.md
+
