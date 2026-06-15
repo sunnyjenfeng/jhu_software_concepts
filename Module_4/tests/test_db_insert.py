@@ -47,10 +47,11 @@ def test_pull_data_inserts_rows(monkeypatch):
         }
     ]
 
-    conn = flask_app.create_db_connection(
-        "gradcafe_db_v2", "postgres", "181818", "127.0.0.1", "5432"
-    )
-
+    # conn = flask_app.create_db_connection(
+    #     "gradcafe_db_v2", "postgres", "181818", "127.0.0.1", "5432"
+    # )
+    conn = flask_app.create_db_connection()
+    
     cur = conn.cursor()
 
     # Before: data is empty
@@ -117,9 +118,11 @@ def test_pull_data_does_not_insert_duplicates(monkeypatch):
         }
     ]
 
-    conn = flask_app.create_db_connection(
-        "gradcafe_db_v2", "postgres", "181818", "127.0.0.1", "5432"
-    )
+    # conn = flask_app.create_db_connection(
+    #     "gradcafe_db_v2", "postgres", "181818", "127.0.0.1", "5432"
+    # )
+
+    conn = flask_app.create_db_connection()
 
     cur = conn.cursor()
     cur.execute("DELETE FROM applicants;")
@@ -253,15 +256,24 @@ def test_run_query_returns_expected_keys():
     assert result["error"] is None
 
 #-------------- below are added for coverage --------------
+# @pytest.mark.db
+# def test_create_db_connection_error(monkeypatch):
+#     def fake_connect(**kwargs):
+#         raise OperationalError("fake error")
+
+#     monkeypatch.setattr(flask_app.psycopg, "connect", fake_connect)
+
+#     # assert flask_app.create_db_connection("db", "user", "pw", "host", "5432") is None
+#     assert flask_app.create_db_connection()
+
 @pytest.mark.db
 def test_create_db_connection_error(monkeypatch):
-    def fake_connect(**kwargs):
+    def fake_connect(*args, **kwargs):
         raise OperationalError("fake error")
 
     monkeypatch.setattr(flask_app.psycopg, "connect", fake_connect)
 
-    assert flask_app.create_db_connection("db", "user", "pw", "host", "5432") is None
-
+    assert flask_app.create_db_connection() is None
 
 @pytest.mark.db
 def test_insert_new_applicants_program_fallback():

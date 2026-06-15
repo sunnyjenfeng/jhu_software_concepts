@@ -13,7 +13,7 @@
         </p>
 
         <form action="{{ url_for('pull_data') }}" method="post">
-          <button type="submit">Pull Data</button>
+          <button type="submit" data-testid="pull-data-btn">Pull Data</button>
         </form>
       </div>
 
@@ -25,7 +25,7 @@
         </p>
 
         <form action="{{ url_for('update_analysis') }}" method="post">
-          <button type="submit">Update Analysis</button>
+          <button type="submit" data-testid="update-analysis-btn">Update Analysis</button>
         </form>
       </div>
 

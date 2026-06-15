@@ -78,11 +78,17 @@ def test_pull_data_button(monkeypatch):
     # Creates a fake browser for testing Flask routes.
     client = flask_app.app.test_client()
 
-    # Flask follows the redirect back to the homepage.
-    response = client.post("/pull-data", follow_redirects=True)
+    # # Flask follows the redirect back to the homepage.
+    # response = client.post("/pull-data", follow_redirects=True)
+
+    # assert response.status_code == 200
+    # # Checks that the fake scraper rows were passed into the loader function.
+    # assert loaded["rows"] == fake_rows
+
+    response = client.post("/pull-data")
 
     assert response.status_code == 200
-    # Checks that the fake scraper rows were passed into the loader function.
+    assert response.get_json()["ok"] is True
     assert loaded["rows"] == fake_rows
 
 # %%
@@ -116,11 +122,19 @@ def test_update_analysis_busy_gating(monkeypatch):
 
     client = flask_app.app.test_client()
 
-    # Another POST request to /update_analysis should return 409.
-    assert client.post("/update-analysis").status_code == 409
+    # # Another POST request to /update_analysis should return 409.
+    # assert client.post("/update-analysis").status_code == 409
 
-    # Another POST request to /pull-data should return 409.
-    assert client.post("/pull-data").status_code == 409
+    # # Another POST request to /pull-data should return 409.
+    # assert client.post("/pull-data").status_code == 409
+    
+    response = client.post("/update-analysis")
+    assert response.status_code == 409
+    assert response.get_json() == {"busy": True}
+
+    response = client.post("/pull-data")
+    assert response.status_code == 409
+    assert response.get_json() == {"busy": True}
 
 #-------------- below are added for coverage ------------------
 @pytest.mark.buttons
@@ -165,7 +179,9 @@ def test_pull_data_exception(monkeypatch):
     client = flask_app.app.test_client()
     response = client.post("/pull-data")
 
-    assert response.status_code == 302
+    # assert response.status_code == 302
+    assert response.status_code == 500
+    assert response.get_json()["ok"] is False
 # %%
 
 

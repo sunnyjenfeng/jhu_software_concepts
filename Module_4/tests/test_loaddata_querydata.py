@@ -7,6 +7,7 @@ import os
 import sys
 
 import pytest
+from psycopg import OperationalError
 
 
 CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -14,13 +15,44 @@ PROJECT_DIR = os.path.dirname(CURRENT_DIR)
 SRC_DIR = os.path.join(PROJECT_DIR, "src")
 sys.path.insert(0, SRC_DIR)
 
+def make_error_cursor():
+    def execute(query):
+        raise OperationalError("fake error")
+
+    def fetchall():
+        return []
+
+    return type(
+        "ErrorCursor",
+        (),
+        {
+            "execute": staticmethod(execute),
+            "fetchall": staticmethod(fetchall),
+        },
+    )()
+
+
+def make_error_connection():
+    def cursor():
+        return make_error_cursor()
+
+    return type(
+        "ErrorConnection",
+        (),
+        {
+            "cursor": staticmethod(cursor),
+            "autocommit": False,
+        },
+    )()
 
 def make_fake_cursor():
     def execute(query):
         pass
 
+    # def fetchall():
+    #     return [(1,)]
     def fetchall():
-        return [(1,)]
+        return [(3.9, 320.0, 160.0, 4.5)]
 
     def close():
         pass
@@ -97,4 +129,39 @@ def test_query_data_module(monkeypatch):
     query_data = importlib.import_module("query_data")
 
     assert query_data.create_db_connection("db", "user", "pw", "host", "5432") is not None
-    assert query_data.execute_read_query(make_fake_connection(), "SELECT count(*)") == [(1,)]
+    # assert query_data.execute_read_query(make_fake_connection(), "SELECT count(*)") == [(1,)]
+    assert query_data.execute_read_query(make_fake_connection(), "SELECT count(*)") == [(3.9, 320.0, 160.0, 4.5)]
+
+@pytest.mark.db
+def test_load_data_error_paths(monkeypatch):
+    load_data = importlib.import_module("load_data")
+
+    def fake_connect(*args, **kwargs):
+        raise OperationalError("fake error")
+
+    monkeypatch.setattr("psycopg.connect", fake_connect)
+
+    assert load_data.create_system_connection("postgres", "181818") is None
+    assert load_data.create_db_connection("db", "user", "pw", "host", "5432") is None
+
+    load_data.create_database(make_error_connection(), "bad_db")
+    load_data.execute_query(make_error_connection(), "BAD SQL")
+
+    assert load_data.execute_read_query(make_error_connection(), "BAD SQL") is None
+
+
+@pytest.mark.db
+def test_query_data_success_and_error_paths(monkeypatch):
+    query_data = importlib.import_module("query_data")
+
+    def fake_connect(*args, **kwargs):
+        raise OperationalError("fake error")
+
+    query_data.execute_query(make_fake_connection(), "SELECT 1")
+
+    assert query_data.execute_read_query(make_error_connection(), "BAD SQL") is None
+
+    monkeypatch.setattr("psycopg.connect", fake_connect)
+
+    assert query_data.create_db_connection("db", "user", "pw", "host", "5432") is None
+    query_data.execute_query(make_error_connection(), "BAD SQL")

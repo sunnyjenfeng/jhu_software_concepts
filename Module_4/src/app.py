@@ -6,35 +6,52 @@ import sys
 
 import psycopg
 
-from flask import Flask, redirect, render_template, request, url_for
+from flask import Flask, jsonify, redirect, render_template, request, url_for
 from psycopg import OperationalError
 
 from queries import QUERIES  #Queries needs to be in .py format to be imported
 
 
-app = Flask(__name__)
+# app = Flask(__name__)
 
 MODULE_2_DIR = os.path.join(os.path.dirname(__file__), "Module_2")
 pull_data_running = False
 
 
-def create_db_connection(db_name, db_user, db_password, db_host, db_port):
+# def create_db_connection(db_name, db_user, db_password, db_host, db_port):
 
-    """
-    create conenction to my db
-    """
+#     """
+#     create conenction to my db
+#     """
+#     connection = None
+#     try:
+#         connection = psycopg.connect(
+#             dbname=db_name,
+#             user=db_user,
+#             password=db_password,
+#             host=db_host,
+#             port=db_port,
+#         )
+#         print("Connection to PostgreSQL DB successful")
+#     except OperationalError as e:
+#         print(f"The error '{e}' occurred")
+#     return connection
+
+def create_db_connection(database_url=None):
     connection = None
-    try:
-        connection = psycopg.connect(
-            dbname=db_name,
-            user=db_user,
-            password=db_password,
-            host=db_host,
-            port=db_port,
+
+    if database_url is None:
+        database_url = os.getenv(
+            "DATABASE_URL",
+            "postgresql://postgres:181818@127.0.0.1:5432/gradcafe_db_v2",
         )
+
+    try:
+        connection = psycopg.connect(database_url)
         print("Connection to PostgreSQL DB successful")
     except OperationalError as e:
         print(f"The error '{e}' occurred")
+
     return connection
 
 def run_query(connection, query):
@@ -155,77 +172,97 @@ def run_module_2_script(script_name):
         check=True,
     )
 
+def create_app(test_config=None):
+    app = Flask(__name__)
 
-@app.route("/")
-@app.route("/analysis")
-def index():
-    conn = create_db_connection("gradcafe_db_v2", "postgres", "181818", "127.0.0.1", "5432")
+    app.config["DATABASE_URL"] = os.getenv(
+        "DATABASE_URL",
+        "postgresql://postgres:181818@127.0.0.1:5432/gradcafe_db_v2",
+    )
 
-    results = []
-    pull_message = request.args.get("pull_message")
+    if test_config:
+        app.config.update(test_config)
 
-    if conn is not None:
-        for query in QUERIES:
-            result = run_query(conn, query)
-            results.append(result)
+    # both url goes to the same page
+    @app.route("/")
+    @app.route("/analysis") 
+   
+    def index():
+        # conn = create_db_connection("gradcafe_db_v2", "postgres", "181818", "127.0.0.1", "5432")
+        conn = create_db_connection(app.config["DATABASE_URL"])
 
-        conn.close()
+        results = []
+        pull_message = request.args.get("pull_message")
 
-    return render_template("index.html", results=results, pull_message=pull_message)
+        if conn is not None:
+            for query in QUERIES:
+                result = run_query(conn, query)
+                results.append(result)
 
+            conn.close()
 
-@app.route("/pull-data", methods=["POST"])
-def pull_data():
-    global pull_data_running
-
-    # if pull_data_running:
-    #     return redirect(url_for("index", pull_message="Pull Data is already running. Please wait."))
-    
-    # JF modified on 06/14 for HW4
-    if pull_data_running:
-        return "Pull Data is currently running. Please wait", 409
-
-    pull_data_running = True
-    conn = create_db_connection("gradcafe_db_v2", "postgres", "181818", "127.0.0.1", "5432")
-
-    if conn is None:
-        pull_data_running = False
-        return redirect(url_for("index", pull_message="Could not connect to the database."))
-
-    try:
-        run_module_2_script("scrape.py")
-        run_module_2_script("clean.py")
-
-        applicant_data_file = os.path.join(MODULE_2_DIR, "applicant_data.json")
-
-        with open(applicant_data_file, "r", encoding="utf-8") as f:
-            applicant_data = json.load(f)
-
-        inserted_count = insert_new_applicants(conn, applicant_data)
-        message = f"Pull complete. Added {inserted_count} new applicants to the database."
-
-    except Exception as error:
-        message = f"Pull failed: {error}"
-
-    finally:
-        conn.close()
-        pull_data_running = False
-
-    return redirect(url_for("index", pull_message=message))
+        return render_template("index.html", results=results, pull_message=pull_message)
 
 
-@app.route("/update-analysis", methods=["POST"])
-def update_analysis():
-    # if pull_data_running:
-    #     return redirect(url_for("index", pull_message="Pull Data is currently running. Analysis cannot update yet."))
-    
-    # JF modified on 06/14 for HW4
-    if pull_data_running:
-        return "Pull Data is currently running. Analysis cannot update yet.", 409
+    @app.route("/pull-data", methods=["POST"])
+    def pull_data():
+        global pull_data_running
 
-    return redirect(url_for("index", pull_message="Analysis updated with the newest database results."))
+        # if pull_data_running:
+        #     return redirect(url_for("index", pull_message="Pull Data is already running. Please wait."))
+        
+        # JF modified on 06/14 for HW4
+        if pull_data_running:
+            # return "Pull Data is currently running. Please wait", 409
+            return jsonify({"busy": True}), 409
+        
+        pull_data_running = True
+        # conn = create_db_connection("gradcafe_db_v2", "postgres", "181818", "127.0.0.1", "5432")
+        conn = create_db_connection(app.config["DATABASE_URL"])
 
+        if conn is None:
+            pull_data_running = False
+            return redirect(url_for("index", pull_message="Could not connect to the database."))
 
+        try:
+            run_module_2_script("scrape.py")
+            run_module_2_script("clean.py")
+
+            applicant_data_file = os.path.join(MODULE_2_DIR, "applicant_data.json")
+
+            with open(applicant_data_file, "r", encoding="utf-8") as f:
+                applicant_data = json.load(f)
+
+            inserted_count = insert_new_applicants(conn, applicant_data)
+            message = f"Pull complete. Added {inserted_count} new applicants to the database."
+
+        # except Exception as error:
+        #     message = f"Pull failed: {error}"
+        except Exception as error:
+            return jsonify({"ok": False, "error": str(error)}), 500
+
+        finally:
+            conn.close()
+            pull_data_running = False
+
+        # return redirect(url_for("index", pull_message=message))
+        return jsonify({"ok": True, "message": message}), 200
+
+    @app.route("/update-analysis", methods=["POST"])
+    def update_analysis():
+        # if pull_data_running:
+        #     return redirect(url_for("index", pull_message="Pull Data is currently running. Analysis cannot update yet."))
+        
+        # JF modified on 06/14 for HW4
+        if pull_data_running:
+            # return "Pull Data is currently running. Analysis cannot update yet.", 409
+            return jsonify({"busy": True}), 409
+        
+        return redirect(url_for("index", pull_message="Analysis updated with the newest database results."))
+
+    return app
+
+app = create_app()
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=8080, debug=True)

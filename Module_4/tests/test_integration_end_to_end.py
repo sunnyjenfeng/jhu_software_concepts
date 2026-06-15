@@ -61,9 +61,10 @@ def test_integration_end_to_end(monkeypatch):
         },
     ]
 
-    conn = flask_app.create_db_connection(
-        "gradcafe_db_v2", "postgres", "181818", "127.0.0.1", "5432"
-    )
+    # conn = flask_app.create_db_connection(
+    #     "gradcafe_db_v2", "postgres", "181818", "127.0.0.1", "5432"
+    # )
+    conn = flask_app.create_db_connection()
 
     cur = conn.cursor()
     cur.execute("DELETE FROM applicants;")
@@ -169,9 +170,11 @@ def test_pull_data_twice_with_overlapping_data(monkeypatch):
     first_pull = [row_a]
     second_pull = [row_a, row_b]
 
-    conn = flask_app.create_db_connection(
-        "gradcafe_db_v2", "postgres", "181818", "127.0.0.1", "5432"
-    )
+    # conn = flask_app.create_db_connection(
+    #     "gradcafe_db_v2", "postgres", "181818", "127.0.0.1", "5432"
+    # )
+
+    conn = flask_app.create_db_connection()
 
     cur = conn.cursor()
     cur.execute("DELETE FROM applicants;")

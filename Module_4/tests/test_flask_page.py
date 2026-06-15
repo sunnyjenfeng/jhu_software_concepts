@@ -19,6 +19,13 @@ sys.path.insert(0, SRC_DIR) #add src folder to the front of Python’s import se
 import app as flask_app #import app.py as a module
 
 # %%
+
+@pytest.mark.web
+def test_create_app_with_test_config():
+    test_app = flask_app.create_app({"TESTING": True})
+
+    assert test_app.config["TESTING"] is True
+    
 @pytest.mark.web #This marks that this test as a web-related test.
 def test_flask_app_testing_config():
 
@@ -58,7 +65,7 @@ def test_get_analysis_status200():
 
     client = flask_app.app.test_client() #It creates a test client, which acts like a fake browser.
 
-    response = client.get("/")
+    response = client.get("/analysis")
 
     assert response.status_code == 200
 
@@ -72,13 +79,16 @@ def test_page_has_buttons():
     flask_app.app.config.update(TESTING=True)
     client = flask_app.app.test_client()
 
-    response = client.get("/")
+    response = client.get("/analysis")
     
     #Gets the HTML response as normal text, so I can search
     page_text = response.get_data(as_text=True) 
 
-    assert '<button type="submit">Pull Data</button>' in page_text
-    assert '<button type="submit">Update Analysis</button>' in page_text
+    # assert '<button type="submit">Pull Data</button>' in page_text
+    # assert '<button type="submit">Update Analysis</button>' in page_text
+    
+    assert 'data-testid="pull-data-btn"' in page_text
+    assert 'data-testid="update-analysis-btn"' in page_text
 
 # %%
 @pytest.mark.web
@@ -90,7 +100,7 @@ def test_analysis_page_has_analysis_and_answer():
     flask_app.app.config.update(TESTING=True)
     client = flask_app.app.test_client()
 
-    response = client.get("/")
+    response = client.get("/analysis")
 
     #Gets the HTML response as normal text, so I can search
     page_text = response.get_data(as_text=True) 
@@ -105,6 +115,12 @@ def test_app_main_runs(monkeypatch):
 
     app_path = os.path.join(SRC_DIR, "app.py")
     runpy.run_path(app_path, run_name="__main__")
+
+@pytest.mark.web
+def test_create_app_with_test_config():
+    test_app = flask_app.create_app({"TESTING": True})
+
+    assert test_app.config["TESTING"] is True
 
 
 # %%
