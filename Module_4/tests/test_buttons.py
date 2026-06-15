@@ -122,6 +122,50 @@ def test_update_analysis_busy_gating(monkeypatch):
     # Another POST request to /pull-data should return 409.
     assert client.post("/pull-data").status_code == 409
 
+#-------------- below are added for coverage ------------------
+@pytest.mark.buttons
+def test_run_module_2_script(monkeypatch):
+    called = {}
+
+    def fake_run(command, cwd, check):
+        called["command"] = command
+        called["check"] = check
+
+    monkeypatch.setattr(flask_app.subprocess, "run", fake_run)
+
+    flask_app.run_module_2_script("scrape.py")
+
+    assert called["command"][-1] == "scrape.py"
+    assert called["check"] is True
+
+
+@pytest.mark.buttons
+def test_pull_data_no_database_connection(monkeypatch):
+    monkeypatch.setattr(flask_app, "pull_data_running", False)
+    monkeypatch.setattr(flask_app, "create_db_connection", lambda *args: None)
+
+    client = flask_app.app.test_client()
+    response = client.post("/pull-data")
+
+    assert response.status_code == 302
+
+
+@pytest.mark.buttons
+def test_pull_data_exception(monkeypatch):
+    fake_connection = SimpleNamespace(close=lambda: None)
+
+    monkeypatch.setattr(flask_app, "pull_data_running", False)
+    monkeypatch.setattr(flask_app, "create_db_connection", lambda *args: fake_connection)
+    monkeypatch.setattr(
+        flask_app,
+        "run_module_2_script",
+        lambda script_name: (_ for _ in ()).throw(Exception("fake error")),
+    )
+
+    client = flask_app.app.test_client()
+    response = client.post("/pull-data")
+
+    assert response.status_code == 302
 # %%
 
 

@@ -2,6 +2,7 @@
 import os
 import sys
 import pytest
+import runpy
 
 # CURRENT_DIR = os.getcwd() # this depends on where I run pytest from.
 
@@ -97,7 +98,13 @@ def test_analysis_page_has_analysis_and_answer():
     assert "Analysis" in page_text
     assert "Answer:" in page_text
 
-# %%
+#--------------- below are added for coverage -------------------
+@pytest.mark.web
+def test_app_main_runs(monkeypatch):
+    monkeypatch.setattr("flask.Flask.run", lambda self, host, port, debug: None)
+
+    app_path = os.path.join(SRC_DIR, "app.py")
+    runpy.run_path(app_path, run_name="__main__")
 
 
 # %%

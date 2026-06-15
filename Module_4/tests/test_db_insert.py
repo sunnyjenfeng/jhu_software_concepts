@@ -6,6 +6,9 @@ import pytest
 import io
 import json
 from types import SimpleNamespace
+from psycopg import OperationalError
+
+
 
 #  __file__ uses the actual location of test_flask_page.py
 CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -17,7 +20,7 @@ sys.path.insert(0, SRC_DIR) #add src folder to the front of Python’s import se
 
 import app as flask_app #import app.py as a module
 
-# %%
+
 @pytest.mark.db
 def test_pull_data_inserts_rows(monkeypatch):
     """
@@ -249,16 +252,36 @@ def test_run_query_returns_expected_keys():
     ]
     assert result["error"] is None
 
-# %%
+#-------------- below are added for coverage --------------
+@pytest.mark.db
+def test_create_db_connection_error(monkeypatch):
+    def fake_connect(**kwargs):
+        raise OperationalError("fake error")
+
+    monkeypatch.setattr(flask_app.psycopg, "connect", fake_connect)
+
+    assert flask_app.create_db_connection("db", "user", "pw", "host", "5432") is None
 
 
-# %%
+@pytest.mark.db
+def test_insert_new_applicants_program_fallback():
+    captured = {}
+    fake_cursor = SimpleNamespace(rowcount=1)
+
+    fake_cursor.execute = lambda sql, row: captured.update({"row": row})
+    fake_cursor.close = lambda: None
+
+    fake_connection = SimpleNamespace(
+        cursor=lambda: fake_cursor,
+        commit=lambda: None,
+    )
+
+    rows = [{"Program Name": "Only Program"}]
+
+    assert flask_app.insert_new_applicants(fake_connection, rows) == 1
+    assert captured["row"]["program"] == "Only Program"
 
 
-# %%
-
-
-# %%
 
 
 
