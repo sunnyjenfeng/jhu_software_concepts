@@ -157,6 +157,8 @@ cd docs
 make clean
 make html
 ```
+Link to sphinx read the docs documentation: 
+https://jhu-software-concepts-hw4.readthedocs.io/en/latest/
 
 Open local HTML docs:
 
