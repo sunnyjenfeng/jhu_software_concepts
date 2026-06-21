@@ -1,0 +1,59 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  pylint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: |
+          python -m pip install --upgrade pip
+          pip install -r src/requirements.txt
+          pip install pylint
+      - run: pylint src tests --fail-under=10
+
+  dependency-graph:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: sudo apt-get update && sudo apt-get install -y graphviz
+      - run: |
+          python -m pip install --upgrade pip
+          pip install -r src/requirements.txt
+          pip install pydeps
+      - run: |
+          cd src
+          pydeps app.py --noshow -T svg -o dependency.svg
+          test -f dependency.svg
+
+  snyk:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: npm install -g snyk
+      - run: snyk test --file=src/requirements.txt --package-manager=pip || true
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+
+  pytest:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: |
+          python -m pip install --upgrade pip
+          pip install -r src/requirements.txt
+          pip install -e .
+          pip install pytest pytest-cov
+      - run: pytest
