@@ -55,7 +55,7 @@ def test_pull_data_inserts_rows(monkeypatch):
     cur = conn.cursor()
 
     # Before: data is empty
-    cur.execute("DELETE FROM applicants;")
+    # cur.execute("DELETE FROM applicants;")
     conn.commit()
 
     # confirms the table is empty before testing /pull-data.
@@ -125,7 +125,7 @@ def test_pull_data_does_not_insert_duplicates(monkeypatch):
     conn = flask_app.create_db_connection()
 
     cur = conn.cursor()
-    cur.execute("DELETE FROM applicants;")
+    # cur.execute("DELETE FROM applicants;")
     conn.commit()
 
     monkeypatch.setattr(flask_app, "pull_data_running", False)
