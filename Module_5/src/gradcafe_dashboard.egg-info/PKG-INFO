@@ -1,0 +1,8 @@
+Metadata-Version: 2.4
+Name: gradcafe-dashboard
+Version: 0.1.0
+Requires-Dist: Flask
+Requires-Dist: psycopg
+Requires-Dist: psycopg2-binary
+Requires-Dist: python-dotenv
+Dynamic: requires-dist

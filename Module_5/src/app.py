@@ -4,11 +4,13 @@ This app has two buttons: pull data and updata analysis
 """
 # pylint: disable=duplicate-code
 
+from dotenv import load_dotenv
+load_dotenv()
+
 import os
 import json
 import subprocess
 import sys
-
 
 import psycopg
 from psycopg2 import Error
@@ -29,10 +31,10 @@ def create_db_connection(database_url=None):
     connection = None
 
     if database_url is None:
-        database_url = os.getenv(
-            "DATABASE_URL",
-            "postgresql://postgres:181818@127.0.0.1:5432/gradcafe_db_v2",
-        )
+        database_url = (
+    f"postgresql://{os.getenv('DB_USER')}:{os.getenv('DB_PASSWORD')}"
+    f"@{os.getenv('DB_HOST')}:{os.getenv('DB_PORT')}/{os.getenv('DB_NAME')}"
+)
 
     try:
         connection = psycopg.connect(database_url)
@@ -47,7 +49,12 @@ def run_query(connection, query):
     try:
         cur = connection.cursor()
         # cur.execute(query["sql"])
-        cur.execute(query["sql"], query.get("params", []))
+        # cur.execute(query["sql"], query.get("params", []))
+        params = query.get("params")
+        if params is None:
+            cur.execute(query["sql"])
+        else:
+            cur.execute(query["sql"], params)
 
         rows = cur.fetchall() # rows is results of the query
 
@@ -166,22 +173,22 @@ def run_module_2_script(script_name):
 
 def create_app(test_config=None):
     """This function create the flask app"""
-    app = Flask(__name__)
+    myapp = Flask(__name__)
 
-    app.config["DATABASE_URL"] = os.getenv(
+    myapp.config["DATABASE_URL"] = os.getenv(
         "DATABASE_URL",
         "postgresql://postgres:181818@127.0.0.1:5432/gradcafe_db_v2",
     )
 
     if test_config:
-        app.config.update(test_config)
+        myapp.config.update(test_config)
 
     # both url goes to the same page
-    @app.route("/")
-    @app.route("/analysis")
+    @myapp.route("/")
+    @myapp.route("/analysis")
     def index():
         # conn = create_db_connection("gradcafe_db_v2", "postgres", "181818", "127.0.0.1", "5432")
-        conn = create_db_connection(app.config["DATABASE_URL"])
+        conn = create_db_connection(myapp.config["DATABASE_URL"])
 
         results = []
         pull_message = request.args.get("pull_message")
@@ -196,7 +203,7 @@ def create_app(test_config=None):
         return render_template("index.html", results=results, pull_message=pull_message)
 
 
-    @app.route("/pull-data", methods=["POST"])
+    @myapp.route("/pull-data", methods=["POST"])
     def pull_data():
         """This is the pull data button"""
         global PULL_DATA_RUNNING # pylint: disable=global-statement
@@ -207,7 +214,7 @@ def create_app(test_config=None):
             return jsonify({"busy": True}), 409
         PULL_DATA_RUNNING = True
         # conn = create_db_connection("gradcafe_db_v2", "postgres", "181818", "127.0.0.1", "5432")
-        conn = create_db_connection(app.config["DATABASE_URL"])
+        conn = create_db_connection(myapp.config["DATABASE_URL"])
 
         if conn is None:
             PULL_DATA_RUNNING = False
@@ -237,7 +244,7 @@ def create_app(test_config=None):
         # return redirect(url_for("index", pull_message=message))
         return jsonify({"ok": True, "message": message}), 200
 
-    @app.route("/update-analysis", methods=["POST"])
+    @myapp.route("/update-analysis", methods=["POST"])
     def update_analysis():
         """This is the update analysis button"""
         # JF modified on 06/14 for HW4
@@ -246,9 +253,9 @@ def create_app(test_config=None):
             return jsonify({"busy": True}), 409
         return redirect(url_for("index",
                         pull_message="Analysis updated with the newest database results."))
-    return app
+    return myapp
 
-myapp = create_app()
+app = create_app()
 
 if __name__ == "__main__":
-    myapp.run(host="0.0.0.0", port=8080, debug=True)
+    app.run(host="0.0.0.0", port=8080, debug=True)

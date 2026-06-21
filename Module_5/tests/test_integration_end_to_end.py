@@ -70,7 +70,7 @@ def test_integration_end_to_end(monkeypatch):
     cur.execute("DELETE FROM applicants;")
     conn.commit()
 
-    monkeypatch.setattr(flask_app, "pull_data_running", False)
+    monkeypatch.setattr(flask_app, "PULL_DATA_RUNNING", False)
     monkeypatch.setattr(flask_app, "run_module_2_script", lambda script_name: None)
     monkeypatch.setattr(
         "builtins.open",
@@ -182,7 +182,7 @@ def test_pull_data_twice_with_overlapping_data(monkeypatch):
 
     fake_pulls = [first_pull, second_pull]
 
-    monkeypatch.setattr(flask_app, "pull_data_running", False)
+    monkeypatch.setattr(flask_app, "PULL_DATA_RUNNING", False)
     monkeypatch.setattr(flask_app, "run_module_2_script", lambda script_name: None)
     monkeypatch.setattr(
         "builtins.open",

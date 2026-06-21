@@ -61,7 +61,10 @@ def execute_read_query(db_connection, stmt, params=None):
     """
     cursor = db_connection.cursor()
     try:
-        cursor.execute(stmt, params or [])
+        if params is None:
+            cursor.execute(stmt)
+        else:
+            cursor.execute(stmt, params)
         return cursor.fetchall()
     except OperationalError as error:
         print(f"The error '{error}' occurred")
@@ -86,7 +89,6 @@ query1_output = execute_read_query(connection, QUERY1, ["Fall 2026", clamp_limit
 print(query1_output)
 
 # %%
-connection.rollback()
 
 # %% [markdown]
 #  #### Q2: What percentage of entries are from international students (not American or Other)
@@ -189,7 +191,6 @@ print(query4_output)
 
 
 # %%
-connection.rollback()
 
 # %% [markdown]
 #  #### Q5: What percent of entries for Fall 2026 are Acceptances (to two decimal places)?

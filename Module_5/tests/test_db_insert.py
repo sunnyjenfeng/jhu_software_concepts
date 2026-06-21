@@ -2,6 +2,7 @@
 import os
 import sys
 import pytest
+import uuid
 
 import io
 import json
@@ -28,6 +29,7 @@ def test_pull_data_inserts_rows(monkeypatch):
 ​    1. Before: target table empty
     ​2. After POST/pull-data new rows exist with required (non-null) fields
     """
+    test_url = f"https://cafe.com/testdata-{uuid.uuid4()}"
     # this create one fake row
     fake_rows = [
         {
@@ -35,7 +37,8 @@ def test_pull_data_inserts_rows(monkeypatch):
             "University": "Test University",
             "Comments": "Test comment",
             "Date of Information Added to Grad Cafe": "2026-06-14",
-            "URL link to applicant entry": "https://cafe.com/testdata",
+            # "URL link to applicant entry": "https://cafe.com/testdata",
+            "URL link to applicant entry": test_url,
             "Applicant Status": "Accepted",
             "Semester and Year of Program Start": "Fall 2026",
             "International / American Student": "American",
@@ -46,10 +49,6 @@ def test_pull_data_inserts_rows(monkeypatch):
             "Masters or PhD": "PhD",
         }
     ]
-
-    # conn = flask_app.create_db_connection(
-    #     "gradcafe_db_v2", "postgres", "181818", "127.0.0.1", "5432"
-    # )
     conn = flask_app.create_db_connection()
     
     cur = conn.cursor()
@@ -59,10 +58,15 @@ def test_pull_data_inserts_rows(monkeypatch):
     conn.commit()
 
     # confirms the table is empty before testing /pull-data.
-    cur.execute("SELECT COUNT(*) FROM applicants;")
-    assert cur.fetchone()[0] == 0
+    # cur.execute("SELECT COUNT(*) FROM applicants;")
+    # assert cur.fetchone()[0] == 0
+    cur.execute("""
+    SELECT COUNT(*)
+    FROM applicants;
+    """)
+    before_count = cur.fetchone()[0]
 
-    monkeypatch.setattr(flask_app, "pull_data_running", False)
+    monkeypatch.setattr(flask_app, "PULL_DATA_RUNNING", False)
 
     # Prevents the test from running scrape.py and clean.py:
     monkeypatch.setattr(flask_app, "run_module_2_script", lambda script_name: None)
@@ -87,7 +91,8 @@ def test_pull_data_inserts_rows(monkeypatch):
         """
     )
     # confirms new rows exist after /pull-data
-    assert cur.fetchone()[0] > 0
+    # assert cur.fetchone()[0] > 0
+    assert cur.fetchone()[0] == before_count + 1
 
     cur.close()
     conn.close()
@@ -128,7 +133,7 @@ def test_pull_data_does_not_insert_duplicates(monkeypatch):
     # cur.execute("DELETE FROM applicants;")
     conn.commit()
 
-    monkeypatch.setattr(flask_app, "pull_data_running", False)
+    monkeypatch.setattr(flask_app, "PULL_DATA_RUNNING", False)
     monkeypatch.setattr(flask_app, "run_module_2_script", lambda script_name: None)
     monkeypatch.setattr(
         "builtins.open",

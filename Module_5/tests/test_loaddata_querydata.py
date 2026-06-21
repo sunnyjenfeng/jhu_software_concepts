@@ -46,7 +46,7 @@ def make_error_connection():
     )()
 
 def make_fake_cursor():
-    def execute(query):
+    def execute(query, params=None):
         pass
 
     # def fetchall():

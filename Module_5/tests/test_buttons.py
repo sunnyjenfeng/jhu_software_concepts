@@ -38,7 +38,7 @@ def test_pull_data_button(monkeypatch):
 
     # Pull_data_running=True/False is a binary var in my original code. 
     # Force pull_data_running to be False, so the route behaves like it is allowed to run
-    monkeypatch.setattr(flask_app, "pull_data_running", False)
+    monkeypatch.setattr(flask_app, "PULL_DATA_RUNNING", False)
     
     #Replaces real database connection function.
     #Instead of connecting to PostgreSQL, it returns a fake object with a .close() method.
@@ -100,7 +100,7 @@ def test_update_analysis_button(monkeypatch):
     ​Returns 200 when not busy
     """
     flask_app.app.config.update(TESTING=True)
-    monkeypatch.setattr(flask_app, "pull_data_running", False)
+    monkeypatch.setattr(flask_app, "PULL_DATA_RUNNING", False)
 
     client = flask_app.app.test_client()
     response = client.post("/update-analysis", follow_redirects=True)
@@ -118,7 +118,7 @@ def test_update_analysis_busy_gating(monkeypatch):
     flask_app.app.config.update(TESTING=True)
 
     # pretends that Pull Data is already running.
-    monkeypatch.setattr(flask_app, "pull_data_running", True)
+    monkeypatch.setattr(flask_app, "PULL_DATA_RUNNING", True)
 
     client = flask_app.app.test_client()
 
@@ -155,7 +155,7 @@ def test_run_module_2_script(monkeypatch):
 
 @pytest.mark.buttons
 def test_pull_data_no_database_connection(monkeypatch):
-    monkeypatch.setattr(flask_app, "pull_data_running", False)
+    monkeypatch.setattr(flask_app, "PULL_DATA_RUNNING", False)
     monkeypatch.setattr(flask_app, "create_db_connection", lambda *args: None)
 
     client = flask_app.app.test_client()
@@ -168,7 +168,7 @@ def test_pull_data_no_database_connection(monkeypatch):
 def test_pull_data_exception(monkeypatch):
     fake_connection = SimpleNamespace(close=lambda: None)
 
-    monkeypatch.setattr(flask_app, "pull_data_running", False)
+    monkeypatch.setattr(flask_app, "PULL_DATA_RUNNING", False)
     monkeypatch.setattr(flask_app, "create_db_connection", lambda *args: fake_connection)
     monkeypatch.setattr(
         flask_app,
