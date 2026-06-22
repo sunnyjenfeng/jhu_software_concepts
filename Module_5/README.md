@@ -2,6 +2,8 @@
 
 This project is a Flask dashboard for viewing and updating GradCafe admissions data stored in a PostgreSQL database. 
 
+If Module_5_report.pdf can not be opened, please use Module_5_report.md instead. 
+
 ## Project Structure
 
 ```text
