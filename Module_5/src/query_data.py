@@ -92,9 +92,7 @@ print(query1_output)
 
 # %% [markdown]
 #  #### Q2: What percentage of entries are from international students (not American or Other)
-# 
 #  (to two decimal places)?
-
 # %%
 
 QUERY2 = sql.SQL("""
@@ -242,9 +240,7 @@ print(query6_output)
 
 # %% [markdown]
 #  #### Q7: How many entries are from applicants who applied to JHU for a masters degrees
-# 
 #  in Computer Science?
-
 # %%
 QUERY7 = sql.SQL("""
 SELECT count(*)
@@ -269,11 +265,8 @@ print(query7_output)
 
 # %% [markdown]
 #  #### Q8: How many entries from 2026 are acceptances from applicants who applied to
-# 
 #  Georgetown University, MIT, Stanford University, or Carnegie Mellon University for
-# 
 #  a PhD in Computer Science?
-
 # %%
 QUERY8 = sql.SQL("""
 SELECT COUNT(*)
@@ -298,16 +291,13 @@ LIMIT %s;
     table=sql.Identifier("applicants")
     )
 
-query8_output = execute_read_query(connection, QUERY8, 
-['Accepted','PhD', '%computer science%', 2026, '%Georgetown%', 
-'%Stanford%','%Carnegie Mellon%', '%Massachusetts Institute of Technology%', '%MIT%', 
+query8_output = execute_read_query(connection, QUERY8,['Accepted','PhD', '%computer science%',
+2026, '%Georgetown%', '%Stanford%','%Carnegie Mellon%',
+'%Massachusetts Institute of Technology%', '%MIT%',
 clamp_limit(1)])
 print(query8_output)
-
-
 # %% [markdown]
 #  #### Q9: Do you numbers for question 8 change if you use LLM Generated Fields
-# 
 #  (rather than your downloaded fields)?
 
 # %%
@@ -357,7 +347,6 @@ print(query9_output)
 
 # %% [markdown]
 #  #### Q10: How many entries for students applied for Fall 2026 term for Stanford Univerity
-# 
 #  Masters program per acceptance status?
 
 # %%
@@ -405,9 +394,7 @@ print(query10_output)
 
 # %% [markdown]
 #  #### Q11: For students applied for Fall 2026 term for Stanford Univerity Masters program
-# 
 #  and got accepted, what is the percentage of international student?
-
 # %%
 QUERY11 = sql.SQL("""
 SELECT
@@ -446,7 +433,4 @@ query11_output = execute_read_query(
         clamp_limit(1),
     ],
 )
-
 print(query11_output)
-
-

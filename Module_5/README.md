@@ -1,182 +1,175 @@
-# Module 4
+# GradCafe Dashboard
 
-This project is a Flask web app for analyzing GradCafe admissions data. It includes scraping and cleaning scripts, PostgreSQL loading/querying code, a Flask dashboard, pytest tests, GitHub Actions, and Sphinx documentation.
-
-## Repository
-
-GitHub SSH URL:
-
-```text
-git@github.com:sunnyjenfeng/jhu_software_concepts.git
-```
+This project is a Flask dashboard for viewing and updating GradCafe admissions data stored in a PostgreSQL database. 
 
 ## Project Structure
 
 ```text
-Module_4/
+.
 ├── src/
-│   ├── app.py
-│   ├── load_data.py
-│   ├── query_data.py
-│   ├── queries.py
-│   ├── Module_2/
-│   │   ├── scrape.py
-│   │   └── clean.py
-│   ├── templates/
-│   └── static/
-├── tests/
-├── docs/
-├── pytest.ini
-└── coverage_summary.txt
+│   ├── app.py                  # Flask application entry point
+│   ├── queries_2.py            # SQL analysis queries
+│   ├── load_data.py            # Database loading helpers
+│   ├── query_data.py           # Query helpers
+│   ├── templates/              # Flask HTML templates
+│   ├── static/                 # CSS files
+│   └── Module_2/               # Scraping and cleaning scripts used by Pull Data
+├── tests/                      # Pytest test suite
+├── docs/                       # Sphinx documentation
+├── .github/workflows/ci.yml    # CI checks 
+├── .env.example                # Example environment variable file
+├── requirements.txt            # Full development dependency list
+├── setup.py                    # Editable package configuration
+└── pytest.ini                  # Pytest and coverage settings
+└── README.md                   # Readme file
+└── dependency.svg              # Dependency graph
+├── snyk-analysis.png.          # screenshot
+├── Module_5_report.pdf         # Module 5 Report
+├── coverage_summary.txt        # Test coverage      
 ```
 
-## Setup
+## Fresh Install with pip
 
-Create and activate a virtual environment:
+Run these commands from the project root.
 
 ```bash
-python3 -m venv /Users/jennifer/Documents/software_concept_python_class/venv
-source /Users/jennifer/Documents/software_concept_python_class/venv/bin/activate
+python -m venv .venv
+source .venv/bin/activate
+pip install -r src/requirements.txt
+pip install -e .
 ```
 
-Install dependencies:
+### Using uv
 
 ```bash
-cd Module_4
-python -m pip install --upgrade pip
-python -m pip install -r src/requirements.txt
-python -m pip install pytest pytest-cov sphinx
+uv venv
+source .venv/bin/activate
+uv pip sync src/requirements.txt
+uv pip install -e .
 ```
 
-## Configure PostgreSQL
+## Environment Variables
 
-Create the PostgreSQL role if needed:
+Create a local `.env` file from the example file:
 
-```sql
-CREATE ROLE postgres WITH SUPERUSER CREATEDB CREATEROLE LOGIN PASSWORD '181818';
+```bash
+cp .env.example .env
 ```
 
-Create the database:
+Update `.env` with your real PostgreSQL settings:
+
+```text
+DB_HOST=127.0.0.1
+DB_PORT=5432
+DB_NAME=gradcafe_db_v2
+DB_USER=gradcafe_app_user
+DB_PASSWORD=replace_with_real_password
+```
+
+The application can also use a full PostgreSQL connection string through `DATABASE_URL`:
+
+```bash
+export DATABASE_URL="postgresql://USER:PASSWORD@127.0.0.1:5432/gradcafe_db_v2"
+```
+
+Do not commit `.env` because it contains database credentials.
+
+## Database Setup
+
+The app expects a running PostgreSQL database. On macOS, PostgreSQL can be installed with Homebrew:
+
+```bash
+brew install postgresql
+brew services start postgresql
+```
+
+Create a database and user that match your `.env` values. Example:
 
 ```sql
 CREATE DATABASE gradcafe_db_v2;
+CREATE USER gradcafe_app_user WITH PASSWORD 'replace_with_real_password';
+GRANT ALL PRIVILEGES ON DATABASE gradcafe_db_v2 TO gradcafe_app_user;
 ```
 
-Set the database URL:
+## Running the Application
+
+Activate your environment, then run the Flask app:
 
 ```bash
-export DATABASE_URL="postgresql://postgres:181818@127.0.0.1:5432/gradcafe_db_v2"
-```
-
-Create the applicants table:
-
-```sql
-CREATE TABLE IF NOT EXISTS applicants (
-    p_id SERIAL PRIMARY KEY,
-    program TEXT,
-    comments TEXT,
-    date_added date,
-    url TEXT,
-    status TEXT,
-    term TEXT,
-    us_or_international TEXT,
-    gpa FLOAT,
-    gre FLOAT,
-    gre_v FLOAT,
-    gre_aw FLOAT,
-    degree TEXT,
-    llm_generated_program TEXT,
-    llm_generated_university TEXT
-);
-```
-
-## Run The Flask App
-
-From `Module_4`:
-
-```bash
+source venv/bin/activate
 python src/app.py
 ```
 
-Open:
+If you used `uv`, activate `.venv` instead:
 
-```text
-http://localhost:8080/analysis
+```bash
+source .venv/bin/activate
+python src/app.py
 ```
 
-## Run Tests
+Open the dashboard in a browser:
+
+```text
+http://localhost:8080
+```
+
+The main routes are:
+
+- `/` and `/analysis`: display the analysis dashboard.
+- `/pull-data`: runs the scrape and clean scripts, then inserts new applicants.
+- `/update-analysis`: refreshes the analysis view.
+
+## Running Tests
 
 Run the full test suite:
 
 ```bash
-python -m pytest
+pytest
 ```
 
-Run tests by marker:
+The project uses `pytest.ini` to require 100 percent coverage:
+
+```text
+--cov=src --cov-report=term-missing --cov-fail-under=100
+```
+
+## Pylint
+
+Command to Run Pylint on all files inside src folder: 
+pylint Module_5/src
+
+This is the same command documented in the GitHub Actions CI workflow.
+
+## Security Tooling
+
+This project uses Snyk in CI to scan Python dependencies for known vulnerabilities. The documented command is:
 
 ```bash
-python -m pytest -m web
-python -m pytest -m buttons
-python -m pytest -m analysis
-python -m pytest -m db
-python -m pytest -m integration
+snyk test --file=src/requirements.txt --package-manager=pip
 ```
 
-Run all marked tests:
+To run Snyk locally, install the Snyk CLI and authenticate first:
 
 ```bash
-python -m pytest -m "web or buttons or analysis or db or integration"
+npm install -g snyk
+snyk auth
+snyk test --file=src/requirements.txt --package-manager=pip
 ```
 
-## Coverage
+Security-related project practices:
 
-Coverage is configured in:
+- Database credentials are stored in `.env` or `DATABASE_URL`, not hard-coded in source files.
+- `.env.example` documents required settings without real secrets.
+- Snyk scans dependencies in CI.
+- Pylint runs in CI to catch code quality issues.
+- Pytest with coverage runs in CI to verify behavior.
 
-```text
-pytest.ini
-```
+## CI Workflow
 
-Save the terminal coverage summary:
+GitHub Actions runs these checks on push and pull request:
 
-```bash
-python -m pytest > coverage_summary.txt
-```
-
-## Documentation
-
-Sphinx documentation source files are in:
-
-```text
-docs/source/
-```
-
-Build docs locally:
-
-```bash
-cd docs
-make clean
-make html
-```
-Link to sphinx read the docs documentation: 
-https://jhu-software-concepts-hw4.readthedocs.io/en/latest/
-
-Open local HTML docs:
-
-```text
-docs/build/html/index.html
-```
-
-Published documentation:
-
-```text
-Add your Read the Docs URL here.
-```
-
-## GitHub Actions
-
-The workflow file is located at:
-
-```text
-../.github/workflows/tests.yml
-```
+- Pylint: `pylint src tests --fail-under=10`
+- Pytest: `pytest`
+- Dependency graph generation with `pydeps`
+- Snyk dependency scanning
 

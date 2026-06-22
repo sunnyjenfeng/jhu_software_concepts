@@ -4,9 +4,6 @@ This app has two buttons: pull data and updata analysis
 """
 # pylint: disable=duplicate-code
 
-from dotenv import load_dotenv
-load_dotenv()
-
 import os
 import json
 import subprocess
@@ -18,9 +15,10 @@ from psycopg2 import Error
 from flask import Flask, jsonify, redirect, render_template, request, url_for
 from psycopg import OperationalError
 
+from dotenv import load_dotenv
 from queries_2 import QUERIES  #Queries needs to be in .py format to be imported
 
-
+load_dotenv()
 # app = Flask(__name__)
 
 MODULE_2_DIR = os.path.join(os.path.dirname(__file__), "Module_2")
