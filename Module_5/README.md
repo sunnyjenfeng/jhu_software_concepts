@@ -49,7 +49,6 @@ source .venv/bin/activate
 uv pip sync src/requirements.txt
 uv pip install -e .
 ```
-
 ## Environment Variables
 
 Create a local `.env` file from the example file:
@@ -174,4 +173,3 @@ GitHub Actions runs these checks on push and pull request:
 - Pytest: `pytest`
 - Dependency graph generation with `pydeps`
 - Snyk dependency scanning
-

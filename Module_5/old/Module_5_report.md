@@ -60,6 +60,9 @@ The dependency graph job generates dependency.svg from app.py and it fails if th
 The Snyk job installs the Snyk CLI and runs snyk test against src/requirements.txt to scan dependencies for known vulnerabilities.
 
  The Pytest job installs all the required packages, then runs the whole test suite. 
+ 
+ 7. Purpose of Packaging
 
+Packaging converts a folder of Python scripts into an installable Python project. The 'setup.py' file defines the project name, modules, and the dependencies to run the application. A fresh environment can be rebuilt with repeatable install commands. The project is easier to share, deploy, and maintain.
 
-
+The project can be installed with `pip install -e .` or `uv pip install -e .` command. 
