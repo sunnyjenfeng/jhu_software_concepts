@@ -1,0 +1,62 @@
+services: 
+  db:
+    image: postgres:16 #use prebuilt images from Docker Hub
+    environment: 
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./src/db/init.sql:/docker-entrypoint-initdb.d/00-init.sql:ro
+    healthcheck:
+      # $$ so the container's* env vars are expanded (matches Docker docs example)
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  rabbitmq:
+    image: rabbitmq:3.13-management #use prebuilt images from Docker Hub
+    ports: 
+      - "15672:15672" # management UI (dev only)  
+    healthcheck:
+      test: ["CMD-SHELL", "rabbitmq-diagnostics -q ping"] 
+      interval: 5s
+      timeout: 3s
+      retries: 10   
+
+  web:
+    build: ./src/web #build web image
+    environment:
+      FLASK_ENV: ${FLASK_ENV}
+      FLASK_SECRET: ${FLASK_SECRET}
+      DATABASE_URL: ${DATABASE_URL}
+      RABBITMQ_URL: ${RABBITMQ_URL}
+    ports: 
+      - "8080:8080"
+    depends_on:
+      db:
+        condition: service_healthy
+      rabbitmq: 
+        condition: service_healthy
+    
+  worker: #background Python process
+    build: ./src/worker #build worker image
+    environment:
+      DATABASE_URL: ${DATABASE_URL}
+      RABBITMQ_URL: ${RABBITMQ_URL}
+      SEED_JSON: ${SEED_JSON}
+      TARGET_TABLE: ${TARGET_TABLE}
+      ID_KEY: ${ID_KEY}
+    volumes: 
+      - ./src/data:/data:ro
+      - ./src/db:/db:ro
+    depends_on:
+      db:
+        condition: service_healthy
+      rabbitmq: 
+        condition: service_healthy
+    command: ["sh", "-c", "python /db/load_data.py && python consumer.py"]
+
+volumes:
+  pgdata: 
