@@ -26,7 +26,10 @@ services:
       retries: 10   
 
   web:
-    build: ./src/web #build web image
+    # build: ./src/web #build web image
+    build:
+      context: ./src
+      dockerfile: web/Dockerfile
     environment:
       FLASK_ENV: ${FLASK_ENV}
       FLASK_SECRET: ${FLASK_SECRET}

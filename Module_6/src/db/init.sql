@@ -18,8 +18,22 @@ CREATE TABLE IF NOT EXISTS applicants (
 
 -- ingestion_watermarks is a small tracking table.
 -- Its job is to remember that a data source was loaded, when it was loaded, and how many rows were added.
+-- CREATE TABLE IF NOT EXISTS ingestion_watermarks (
+--     source_name TEXT PRIMARY KEY,
+--     last_loaded_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+--     rows_loaded INTEGER NOT NULL DEFAULT 0
+-- );
 CREATE TABLE IF NOT EXISTS ingestion_watermarks (
-    source_name TEXT PRIMARY KEY,
-    last_loaded_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    rows_loaded INTEGER NOT NULL DEFAULT 0
+    source TEXT PRIMARY KEY,
+    last_seen TEXT,
+    updated_at TIMESTAMPTZ DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS analytics_results (
+    query_number INTEGER PRIMARY KEY,
+    question TEXT NOT NULL,
+    columns JSONB NOT NULL,
+    rows JSONB NOT NULL,
+    error TEXT,
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );

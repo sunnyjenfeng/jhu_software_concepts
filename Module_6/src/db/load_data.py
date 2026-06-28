@@ -169,40 +169,24 @@ def insert_applicants(db_connection, applicant_data1):
 inserted_count = insert_applicants(connection, applicant_data)
 print(f"Inserted {inserted_count} new applicants.")
 
+# ingestion_watermarks
 cur = connection.cursor()
 cur.execute(
     """
-    INSERT INTO ingestion_watermarks (source_name, rows_loaded)
-    VALUES (%s, %s)
-    ON CONFLICT (source_name)
+    INSERT INTO ingestion_watermarks (source, last_seen, updated_at)
+    VALUES (%s, %s, now())
+    ON CONFLICT (source)
     DO UPDATE SET
-        last_loaded_at = NOW(),
-        rows_loaded = ingestion_watermarks.rows_loaded + EXCLUDED.rows_loaded;
+        last_seen = EXCLUDED.last_seen,
+        updated_at = now();
     """,
-    ("llm_extend_applicant_data_run.jsonl", inserted_count),
+    (
+        "llm_extend_applicant_data_run.jsonl",
+        applicant_data[-1].get("url") if applicant_data else None,
+    ),
 )
 connection.commit()
 cur.close()
 
-# def execute_read_query(db_connection, query):
-#     """
-#     test connection and Read query 
-#     Note: the two functions are different: 
-#     execute_query ---- runs query, does not fetch data
-#     execute_read_query ---- runs SELECT query, fetches and returns data
-#     """
-#     cursor = db_connection.cursor()
-#     result = None
-#     try:
-#         cursor.execute(query)
-#         result = cursor.fetchall()
-#         return result
-#     except OperationalError as e:
-#         print(f"The error '{e}' occurred")
-#         return None
-
-
-# SELECT_APPLICANTS = "SELECT * FROM applicants limit 10"
-# applicants = execute_read_query(connection, SELECT_APPLICANTS)
 
 
