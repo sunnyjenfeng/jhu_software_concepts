@@ -1,188 +1,95 @@
-# %%
+"""Tests for Flask button routes."""
+
 import os
 import sys
 import pytest
+from pika.exceptions import AMQPError
 
-#  __file__ uses the actual location of test_flask_page.py
 CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
-PROJECT_DIR = os.path.dirname(CURRENT_DIR)  # this moves up one level(to the parent folder)
-SRC_DIR = os.path.join(PROJECT_DIR, "src") #this goes to Module_4/src
+PROJECT_DIR = os.path.dirname(CURRENT_DIR)
+SRC_DIR = os.path.join(PROJECT_DIR, "src")
+WEB_DIR = os.path.join(SRC_DIR, "web")
+sys.path.insert(0, SRC_DIR)
+sys.path.insert(0, WEB_DIR)
 
+import web.app as flask_app  # pylint: disable=wrong-import-position
 
-sys.path.insert(0, SRC_DIR) #add src folder to the front of Python’s import search list
-
-import web.app as flask_app #import app.py as a module
-
-
-# %%
-import io
-import json
-from types import SimpleNamespace
-
-# %%
 
 @pytest.mark.buttons
-def test_pull_data_button(monkeypatch):
-    """   ​
-    Test pull-data 
-​    1. Returns 200
-    ​2. Triggers the loader with the rows from the scraper (should be faked / mocked)
-    """
-    # fake_rows is fake scraper data.
-    # loaded is an empty dictionary used to remember what rows got passed into the loader function.
-    fake_rows = [{"Program Name": "Test Program"}]
-    loaded = {}
-
-    # Turns on Flask testing mode.
-    flask_app.app.config.update(TESTING=True)
-
-    # Pull_data_running=True/False is a binary var in my original code. 
-    # Force pull_data_running to be False, so the route behaves like it is allowed to run
-    monkeypatch.setattr(flask_app, "PULL_DATA_RUNNING", False)
-    
-    #Replaces real database connection function.
-    #Instead of connecting to PostgreSQL, it returns a fake object with a .close() method.
-    # it acts like : 
-    # conn = create_db_connection(...)
-    # ...
-    # conn.close()
-    monkeypatch.setattr(flask_app,
-                        "create_db_connection",
-                        lambda *args: SimpleNamespace(close=lambda: None),)
-    
-    # Replaces this real behavior:
-    # run_module_2_script("scrape.py")
-    # run_module_2_script("clean.py")
-    # So the test does not actually run  scraper or cleaner.
-    monkeypatch.setattr(flask_app, "run_module_2_script", lambda script_name: None)
-
-
-    # The app normally opens a JSON file: applicant_data.json. 
-    # This replaces open() with a fake file containing:[{"Program Name": "Test Program"}]
-    monkeypatch.setattr("builtins.open",
-                     lambda *args, **kwargs: io.StringIO(json.dumps(fake_rows)),)
-
-    monkeypatch.setattr(flask_app,
-                        "insert_new_applicants",
-                        lambda connection, rows: loaded.setdefault("rows", rows) or 1,)
-
-    monkeypatch.setattr(flask_app,
-                        "run_query",
-                        lambda connection, query: {
-                            "number": query["number"],
-                            "question": query["question"],
-                            "columns": [],
-                            "rows": [],
-                            "error": None,
-                        },)
-    # Creates a fake browser for testing Flask routes.
-    client = flask_app.app.test_client()
-
-    # # Flask follows the redirect back to the homepage.
-    # response = client.post("/pull-data", follow_redirects=True)
-
-    # assert response.status_code == 200
-    # # Checks that the fake scraper rows were passed into the loader function.
-    # assert loaded["rows"] == fake_rows
-
-    response = client.post("/pull-data")
-
-    assert response.status_code == 200
-    assert response.get_json()["ok"] is True
-    assert loaded["rows"] == fake_rows
-
-# %%
-
-@pytest.mark.buttons
-def test_update_analysis_button(monkeypatch):
-    """
-    Test POST /update-analysis 
-    ​Returns 200 when not busy
-    """
-    flask_app.app.config.update(TESTING=True)
-    monkeypatch.setattr(flask_app, "PULL_DATA_RUNNING", False)
-
-    client = flask_app.app.test_client()
-    response = client.post("/update-analysis", follow_redirects=True)
-
-    assert response.status_code == 200
-
-# %%
-@pytest.mark.buttons
-def test_update_analysis_busy_gating(monkeypatch):
-    """
-    Test busy gating
-    1. ​When a pull is “in progress”, POST /update-analysis returns 409 (and performs no update).
-​    2. When busy(pull is “in progress”), POST /pull-data returns 409
-    """
-    flask_app.app.config.update(TESTING=True)
-
-    # pretends that Pull Data is already running.
-    monkeypatch.setattr(flask_app, "PULL_DATA_RUNNING", True)
-
-    client = flask_app.app.test_client()
-
-    # # Another POST request to /update_analysis should return 409.
-    # assert client.post("/update-analysis").status_code == 409
-
-    # # Another POST request to /pull-data should return 409.
-    # assert client.post("/pull-data").status_code == 409
-    
-    response = client.post("/update-analysis")
-    assert response.status_code == 409
-    assert response.get_json() == {"busy": True}
-
-    response = client.post("/pull-data")
-    assert response.status_code == 409
-    assert response.get_json() == {"busy": True}
-
-#-------------- below are added for coverage ------------------
-@pytest.mark.buttons
-def test_run_module_2_script(monkeypatch):
+def test_pull_data_queues_task(monkeypatch):
+    """Pull Data queues the scrape task."""
     called = {}
 
-    def fake_run(command, cwd, check):
-        called["command"] = command
-        called["check"] = check
+    def fake_publish_task(kind, payload=None):
+        called["kind"] = kind
+        called["payload"] = payload
 
-    monkeypatch.setattr(flask_app.subprocess, "run", fake_run)
-
-    flask_app.run_module_2_script("scrape.py")
-
-    assert called["command"][-1] == "scrape.py"
-    assert called["check"] is True
-
-
-@pytest.mark.buttons
-def test_pull_data_no_database_connection(monkeypatch):
-    monkeypatch.setattr(flask_app, "PULL_DATA_RUNNING", False)
-    monkeypatch.setattr(flask_app, "create_db_connection", lambda *args: None)
+    monkeypatch.setattr(flask_app, "publish_task", fake_publish_task)
 
     client = flask_app.app.test_client()
     response = client.post("/pull-data")
 
-    assert response.status_code == 302
+    assert response.status_code == 202
+    assert response.get_json() == {
+        "status": "queued",
+        "task": "scrape_new_data",
+    }
+    assert called == {
+        "kind": "scrape_new_data",
+        "payload": {},
+    }
 
 
 @pytest.mark.buttons
-def test_pull_data_exception(monkeypatch):
-    fake_connection = SimpleNamespace(close=lambda: None)
+def test_update_analysis_queues_task(monkeypatch):
+    """Update Analysis queues the recompute task."""
+    called = {}
 
-    monkeypatch.setattr(flask_app, "PULL_DATA_RUNNING", False)
-    monkeypatch.setattr(flask_app, "create_db_connection", lambda *args: fake_connection)
-    monkeypatch.setattr(
-        flask_app,
-        "run_module_2_script",
-        lambda script_name: (_ for _ in ()).throw(Exception("fake error")),
-    )
+    def fake_publish_task(kind, payload=None):
+        called["kind"] = kind
+        called["payload"] = payload
+
+    monkeypatch.setattr(flask_app, "publish_task", fake_publish_task)
+
+    client = flask_app.app.test_client()
+    response = client.post("/update-analysis")
+
+    assert response.status_code == 202
+    assert response.get_json() == {
+        "status": "queued",
+        "task": "recompute_analytics",
+    }
+    assert called == {
+        "kind": "recompute_analytics",
+        "payload": {},
+    }
+
+
+@pytest.mark.buttons
+def test_pull_data_publish_failure(monkeypatch):
+    """Pull Data returns 503 when publishing fails."""
+    def fake_publish_task(kind, payload=None):
+        raise AMQPError("fake publish error")
+
+    monkeypatch.setattr(flask_app, "publish_task", fake_publish_task)
 
     client = flask_app.app.test_client()
     response = client.post("/pull-data")
 
-    # assert response.status_code == 302
-    assert response.status_code == 500
-    assert response.get_json()["ok"] is False
-# %%
+    assert response.status_code == 503
+    assert response.get_json() == {"error": "publish_failed"}
 
 
+@pytest.mark.buttons
+def test_update_analysis_publish_failure(monkeypatch):
+    """Update Analysis returns 503 when publishing fails."""
+    def fake_publish_task(kind, payload=None):
+        raise AMQPError("fake publish error")
 
+    monkeypatch.setattr(flask_app, "publish_task", fake_publish_task)
+
+    client = flask_app.app.test_client()
+    response = client.post("/update-analysis")
+
+    assert response.status_code == 503
+    assert response.get_json() == {"error": "publish_failed"}

@@ -166,12 +166,12 @@ def insert_applicants(db_connection, applicant_data1):
     return inserted_count
 
 # insert_applicants(connection, applicant_data)
-inserted_count = insert_applicants(connection, applicant_data)
-print(f"Inserted {inserted_count} new applicants.")
+INSERTED_APPLICANT_COUNT = insert_applicants(connection, applicant_data)
+print(f"Inserted {INSERTED_APPLICANT_COUNT} new applicants.")
 
 # ingestion_watermarks
-cur = connection.cursor()
-cur.execute(
+watermark_cursor = connection.cursor()
+watermark_cursor.execute(
     """
     INSERT INTO ingestion_watermarks (source, last_seen, updated_at)
     VALUES (%s, %s, now())
@@ -186,7 +186,4 @@ cur.execute(
     ),
 )
 connection.commit()
-cur.close()
-
-
-
+watermark_cursor.close()

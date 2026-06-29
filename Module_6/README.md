@@ -1,175 +1,257 @@
-# GradCafe Dashboard
+# Module 6 GradCafe Dashboard
 
-This project is a Flask dashboard for viewing and updating GradCafe admissions data stored in a PostgreSQL database. 
+This module runs the GradCafe dashboard as a Docker Compose application. It uses a Flask web app, a PostgreSQL database, RabbitMQ, and a background worker that handles scraping and analytics tasks.
 
-If Module_5_report.pdf can not be opened, please use Module_5_report.md instead. 
+## Docker Hub Images
+
+Docker Hub registry link:
+
+https://hub.docker.com/repositories/pandajen
+
+Published image repositories:
+
+- Web app: https://hub.docker.com/repository/docker/pandajen/module6-web/general
+- Worker: https://hub.docker.com/repository/docker/pandajen/module_6-worker/general
+
+Example image tags:
+
+```text
+pandajen/module6-web:v1
+pandajen/module_6-worker:v1
+```
+
+## Docker Installation Assumptions
+
+This project assumes Docker Desktop is installed and running.
+
+On macOS, install Docker Desktop from:
+
+```text
+https://www.docker.com/products/docker-desktop/
+```
+
+Verify Docker is available:
+
+```bash
+docker --version
+docker compose version
+```
+
+The app is designed to run with Docker Compose from the `Module_6` directory.
 
 ## Project Structure
 
 ```text
-.
+Module_6/
+├── docker-compose.yml
+├── .env
+├── .env.example
 ├── src/
-│   ├── app.py                  # Flask application entry point
-│   ├── queries_2.py            # SQL analysis queries
-│   ├── load_data.py            # Database loading helpers
-│   ├── query_data.py           # Query helpers
-│   ├── templates/              # Flask HTML templates
-│   ├── static/                 # CSS files
-│   └── Module_2/               # Scraping and cleaning scripts used by Pull Data
-├── tests/                      # Pytest test suite
-├── docs/                       # Sphinx documentation
-├── .github/workflows/ci.yml    # CI checks 
-├── .env.example                # Example environment variable file
-├── requirements.txt            # Full development dependency list
-├── setup.py                    # Editable package configuration
-└── pytest.ini                  # Pytest and coverage settings
-└── README.md                   # Readme file
-└── dependency.svg              # Dependency graph
-├── snyk-analysis.png.          # screenshot
-├── Module_5_report.pdf         # Module 5 Report
-├── coverage_summary.txt        # Test coverage      
+│   ├── web/
+│   │   ├── app.py
+│   │   ├── run.py
+│   │   ├── Dockerfile
+│   │   └── requirements.txt
+│   ├── worker/
+│   │   ├── consumer.py
+│   │   ├── scrape.py
+│   │   ├── clean.py
+│   │   ├── Dockerfile
+│   │   └── requirements.txt
+│   ├── db/
+│   │   ├── init.sql
+│   │   └── load_data.py
+│   ├── data/
+│   ├── templates/
+│   └── static/
+└── tests/
 ```
 
-## Fresh Install with pip
-
-Run these commands from the project root.
-
-```bash
-python -m venv .venv
-source .venv/bin/activate
-pip install -r src/requirements.txt
-pip install -e .
-```
-
-### Using uv
-
-```bash
-uv venv
-source .venv/bin/activate
-uv pip sync src/requirements.txt
-uv pip install -e .
-```
 ## Environment Variables
 
-Create a local `.env` file from the example file:
+Create a `.env` file in `Module_6`.
 
-```bash
-cp .env.example .env
-```
-
-Update `.env` with your real PostgreSQL settings:
+Example:
 
 ```text
-DB_HOST=127.0.0.1
-DB_PORT=5432
-DB_NAME=gradcafe_db_v2
-DB_USER=gradcafe_app_user
-DB_PASSWORD=replace_with_real_password
+POSTGRES_USER=gradcafe_app_user
+POSTGRES_PASSWORD=181818
+POSTGRES_DB=gradcafe_db_v2
+
+DATABASE_URL=postgresql://gradcafe_app_user:181818@db:5432/gradcafe_db_v2
+RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672/
+
+FLASK_ENV=development
+FLASK_SECRET=dev-secret
+
+SEED_JSON=/data/llm_extend_applicant_data_run.jsonl
+TARGET_TABLE=applicants
+ID_KEY=p_id
 ```
 
-The application can also use a full PostgreSQL connection string through `DATABASE_URL`:
+## Ports
+
+The Compose app exposes:
+
+```text
+Web dashboard: http://localhost:8080
+RabbitMQ UI:   http://localhost:15672
+```
+
+RabbitMQ management login is usually:
+
+```text
+username: guest
+password: guest
+```
+
+PostgreSQL runs inside Docker and is used by the web and worker services through the Compose network.
+
+## Build and Run
+
+From the repository root:
 
 ```bash
-export DATABASE_URL="postgresql://USER:PASSWORD@127.0.0.1:5432/gradcafe_db_v2"
+cd Module_6
+docker compose up --build
 ```
 
-Do not commit `.env` because it contains database credentials.
-
-## Database Setup
-
-The app expects a running PostgreSQL database. On macOS, PostgreSQL can be installed with Homebrew:
+Check running services:
 
 ```bash
-brew install postgresql
-brew services start postgresql
+docker compose ps
 ```
 
-Create a database and user that match your `.env` values. Example:
-
-```sql
-CREATE DATABASE gradcafe_db_v2;
-CREATE USER gradcafe_app_user WITH PASSWORD 'replace_with_real_password';
-GRANT ALL PRIVILEGES ON DATABASE gradcafe_db_v2 TO gradcafe_app_user;
-```
-
-## Running the Application
-
-Activate your environment, then run the Flask app:
+View logs:
 
 ```bash
-source venv/bin/activate
-python src/app.py
+docker compose logs -f web
+docker compose logs -f worker
 ```
 
-If you used `uv`, activate `.venv` instead:
+Stop containers:
 
 ```bash
-source .venv/bin/activate
-python src/app.py
+docker compose down
 ```
 
-Open the dashboard in a browser:
+Stop containers and remove the database volume:
+
+```bash
+docker compose down -v
+```
+
+Use `docker compose down -v` only when it is okay to delete the local database data.
+
+## Task Buttons
+
+Open the dashboard:
 
 ```text
 http://localhost:8080
 ```
 
-The main routes are:
+The page has two main task buttons.
 
-- `/` and `/analysis`: display the analysis dashboard.
-- `/pull-data`: runs the scrape and clean scripts, then inserts new applicants.
-- `/update-analysis`: refreshes the analysis view.
+**Pull Data**
 
-## Running Tests
-
-Run the full test suite:
-
-```bash
-pytest
-```
-
-The project uses `pytest.ini` to require 100 percent coverage:
+Queues a RabbitMQ task named:
 
 ```text
---cov=src --cov-report=term-missing --cov-fail-under=100
+scrape_new_data
 ```
 
-## Pylint
+The worker consumes the task, scrapes recent GradCafe records, cleans them, and inserts new applicant rows into PostgreSQL. Duplicate URLs are skipped with `ON CONFLICT (url) DO NOTHING`, so the row count only increases when newly scraped records are not already in the database.
 
-Command to Run Pylint on all files inside src folder: 
-pylint Module_5/src
+**Update Analysis**
 
-This is the same command documented in the GitHub Actions CI workflow.
+Queues a RabbitMQ task named:
 
-## Security Tooling
+```text
+recompute_analytics
+```
 
-This project uses Snyk in CI to scan Python dependencies for known vulnerabilities. The documented command is:
+The worker recomputes the SQL analysis results and stores them in the `analytics_results` table for the dashboard to display.
+
+## Database Checks
+
+Open a database shell:
 
 ```bash
-snyk test --file=src/requirements.txt --package-manager=pip
+docker compose exec db psql -U gradcafe_app_user -d gradcafe_db_v2
 ```
 
-To run Snyk locally, install the Snyk CLI and authenticate first:
+Count applicant rows:
+
+```sql
+SELECT COUNT(*) FROM applicants;
+```
+
+Check the scrape watermark:
+
+```sql
+SELECT source, last_seen, updated_at
+FROM ingestion_watermarks;
+```
+
+Exit `psql`:
+
+```sql
+\q
+```
+
+## Build, Tag, and Push Images
+
+Build local images:
 
 ```bash
-npm install -g snyk
-snyk auth
-snyk test --file=src/requirements.txt --package-manager=pip
+docker compose build
 ```
 
-Security-related project practices:
+Tag the web image:
 
-- Database credentials are stored in `.env` or `DATABASE_URL`, not hard-coded in source files.
-- `.env.example` documents required settings without real secrets.
-- Snyk scans dependencies in CI.
-- Pylint runs in CI to catch code quality issues.
-- Pytest with coverage runs in CI to verify behavior.
+```bash
+docker tag module_6-web pandajen/module6-web:v1
+```
 
-## CI Workflow
+Tag the worker image:
 
-GitHub Actions runs these checks on push and pull request:
+```bash
+docker tag module_6-worker pandajen/module_6-worker:v1
+```
 
-- Pylint: `pylint src tests --fail-under=10`
-- Pytest: `pytest`
-- Dependency graph generation with `pydeps`
-- Snyk dependency scanning
+Log in to Docker Hub:
+
+```bash
+docker login
+```
+
+Push images:
+
+```bash
+docker push pandajen/module6-web:v1
+docker push pandajen/module_6-worker:v1
+```
+
+If Compose shows image IDs instead of image names, tag by image ID:
+
+```bash
+docker tag IMAGE_ID pandajen/module6-web:v1
+docker tag IMAGE_ID pandajen/module_6-worker:v1
+```
+
+## Tests and CI
+
+Run tests from `Module_6`:
+
+```bash
+PYTHONPATH=src python -m pytest
+```
+
+Run Pylint on Module 6 source code:
+
+```bash
+PYTHONPATH=src pylint src --fail-under=8
+```
+
+The GitHub Actions workflow should run Pylint and Pytest with `working-directory: Module_6`. 
