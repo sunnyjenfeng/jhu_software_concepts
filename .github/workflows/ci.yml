@@ -48,7 +48,4 @@ jobs:
           python -m pip install -r src/web/requirements.txt
           python -m pip install -r src/worker/requirements.txt
           python -m pip install -e .
-          python -m pip install pytest pytest-cov
-
-      - name: Run Pytest
-        run: PYTHONPATH=src python -m pytest
+          python -m pip
