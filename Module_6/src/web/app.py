@@ -5,23 +5,21 @@ This app has two buttons: pull data and updata analysis
 # pylint: disable=duplicate-code
 from __future__ import annotations
 import os
-import json
 import subprocess
 import sys
 
 import psycopg
 # from psycopg2 import Error
-from psycopg import Error
+from pika.exceptions import AMQPError
+from psycopg import Error,OperationalError
 
-from flask import Flask, jsonify, redirect, render_template, request, url_for, current_app
-from psycopg import OperationalError
+from flask import Flask, jsonify, render_template, request, current_app
 
 from dotenv import load_dotenv
-from queries_2 import QUERIES  #Queries needs to be in .py format to be imported
-from publisher import publish_task
+from web.queries_2 import QUERIES
+from web.publisher import publish_task
 
 load_dotenv()
-# app = Flask(__name__)
 
 MODULE_2_DIR = os.path.join(os.path.dirname(__file__), "Module_2")
 PULL_DATA_RUNNING = False
@@ -79,7 +77,7 @@ def run_query(connection, query):
             "rows": [],
             "error": str(e),
         }
-    
+
 def get_cached_analysis_results(connection):
     """Read analytics results created by the worker."""
     cur = connection.cursor()
@@ -199,17 +197,25 @@ def run_module_2_script(script_name):
     )
 
 def create_app(test_config=None):
-    """This function create the flask app"""
+    """This function creates the flask app"""
     # myapp = Flask(__name__)
-    myapp = Flask(
-                __name__,
+    myapp = Flask(__name__,
                 template_folder="../templates",
                 static_folder="../static",)
 
+    # myapp.config["DATABASE_URL"] = os.getenv(
+    #     "DATABASE_URL",
+    #     "postgresql://postgres:181818@127.0.0.1:5432/gradcafe_db_v2",
+    # )
     myapp.config["DATABASE_URL"] = os.getenv(
-        "DATABASE_URL",
-        "postgresql://postgres:181818@127.0.0.1:5432/gradcafe_db_v2",
-    )
+    "DATABASE_URL",
+        (
+            f"postgresql://{os.getenv('DB_USER')}:"
+            f"{os.getenv('DB_PASSWORD')}"
+            f"@{os.getenv('DB_HOST')}:"
+            f"{os.getenv('DB_PORT')}/"
+            f"{os.getenv('DB_NAME')}"
+        ),)
 
     if test_config:
         myapp.config.update(test_config)
@@ -249,20 +255,18 @@ def create_app(test_config=None):
         try:
             publish_task("scrape_new_data", payload={})
             return jsonify({"status": "queued", "task": "scrape_new_data"}), 202
-        except Exception:
+        except AMQPError:
             current_app.logger.exception("Failed to publish scrape_new_data")
             return jsonify({"error": "publish_failed"}), 503
-        
     @myapp.route("/update-analysis", methods=["POST"])
     def update_analysis():
         """Queue analysis recompute task."""
         try:
             publish_task("recompute_analytics", payload={})
             return jsonify({"status": "queued", "task": "recompute_analytics"}), 202
-        except Exception:
+        except AMQPError:
             current_app.logger.exception("Failed to publish recompute_analytics")
             return jsonify({"error": "publish_failed"}), 503
-    
     return myapp
 
 app = create_app()
