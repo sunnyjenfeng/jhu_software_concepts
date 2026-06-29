@@ -7,8 +7,9 @@ import re
 import pika
 import psycopg
 from psycopg.types.json import Jsonb
-from queries_2 import QUERIES
-
+from worker.queries_2 import QUERIES
+from worker.scrape import scrape_data
+from worker.clean import clean_data
 
 EXCHANGE = "tasks"
 QUEUE = "tasks_q"
@@ -16,8 +17,8 @@ ROUTING_KEY = "tasks"
 SOURCE = "llm_extend_applicant_data_run.jsonl"
 DATA_FILE = "/data/llm_extend_applicant_data_run.jsonl"
 
-
 def open_rabbit_channel():
+    """This opens channel"""
     params = pika.URLParameters(os.environ["RABBITMQ_URL"])
     rabbit_conn = pika.BlockingConnection(params)
     channel = rabbit_conn.channel()
@@ -25,13 +26,12 @@ def open_rabbit_channel():
     channel.exchange_declare(exchange=EXCHANGE, exchange_type="direct", durable=True)
     channel.queue_declare(queue=QUEUE, durable=True)
     channel.queue_bind(exchange=EXCHANGE, queue=QUEUE, routing_key=ROUTING_KEY)
-    # Backpressure with one message at a time
+    # Backpressure with one message at a time (prefetch_count=1)
     channel.basic_qos(prefetch_count=1)
-
     return rabbit_conn, channel
 
-
 def get_last_seen(conn):
+    """This function gets the last seen ID"""
     with conn.cursor() as cur:
         cur.execute(
             "SELECT last_seen FROM ingestion_watermarks WHERE source = %s",
@@ -42,6 +42,7 @@ def get_last_seen(conn):
 
 
 def update_last_seen(conn, last_seen):
+    """This function updates the last seen ID"""
     with conn.cursor() as cur:
         cur.execute(
             """
@@ -57,14 +58,27 @@ def update_last_seen(conn, last_seen):
 
 
 def result_id(url):
+    """This function gets the result id"""
     if not url:
         return None
     match = re.search(r"/result/(\d+)", url)
     return int(match.group(1)) if match else None
 
+def watermark_id(value):
+    """This function gets the watermark id"""
+    if not value:
+        return 0
+
+    extracted_id = result_id(value)
+    if extracted_id is not None:
+        return extracted_id
+
+    return int(value)
+
 
 def load_new_records(since):
-    since_id = int(since) if since else 0
+    """This function loads new records"""
+    since_id = watermark_id(since)
     records = []
 
     with open(DATA_FILE, "r", encoding="utf-8") as file:
@@ -77,11 +91,13 @@ def load_new_records(since):
 
             if current_id and current_id > since_id:
                 records.append(record)
-
     return records
 
 
 def insert_applicants(conn, records):
+    """
+    This function inserts new applicants data into applicants table
+    """
     insert_sql = """
         INSERT INTO applicants (
             program, comments, date_added, url, status, term,
@@ -118,38 +134,114 @@ def insert_applicants(conn, records):
                 },
             )
 
+def insert_scraped_applicants(conn, records):
+    """this function inserts scraped applicants data"""
+    insert_sql = """
+        INSERT INTO applicants (
+            program,
+            comments,
+            date_added,
+            url,
+            status,
+            term,
+            us_or_international,
+            gpa,
+            gre,
+            gre_v,
+            gre_aw,
+            degree,
+            llm_generated_program,
+            llm_generated_university
+        )
+        VALUES (
+            %(program)s,
+            %(comments)s,
+            %(date_added)s,
+            %(url)s,
+            %(status)s,
+            %(term)s,
+            %(us_or_international)s,
+            %(gpa)s,
+            %(gre)s,
+            %(gre_v)s,
+            %(gre_aw)s,
+            %(degree)s,
+            %(llm_generated_program)s,
+            %(llm_generated_university)s
+        )
+        ON CONFLICT (url) DO NOTHING;
+    """
+
+    inserted_count = 0
+
+    with conn.cursor() as cur:
+        for record in records:
+            program_name = record.get("Program Name")
+            university = record.get("University")
+
+            if program_name and university:
+                program = f"{program_name}, {university}"
+            else:
+                program = program_name or university
+
+            cur.execute(
+                insert_sql,
+                {
+                    "program": program,
+                    "comments": record.get("Comments"),
+                    "date_added": record.get("Date of Information Added to Grad Cafe"),
+                    "url": record.get("URL link to applicant entry"),
+                    "status": record.get("Applicant Status"),
+                    "term": record.get("Semester and Year of Program Start"),
+                    "us_or_international": record.get("International / American Student"),
+                    "gpa": record.get("GPA") or None,
+                    "gre": record.get("GRE Score") or None,
+                    "gre_v": record.get("GRE V Score") or None,
+                    "gre_aw": record.get("GRE AW") or None,
+                    "degree": record.get("Masters or PhD"),
+                    "llm_generated_program": program_name,
+                    "llm_generated_university": university,
+                },
+            )
+
+            if cur.rowcount == 1:
+                inserted_count += 1
+
+    return inserted_count
 
 def handle_scrape_new_data(conn, payload):
-    since = payload.get("since") or get_last_seen(conn)
-    records = load_new_records(since)
+    """
+    If the RabbitMQ task payload includes a "since" value, it uses that. 
+    Otherwise, it checks the database table ingestion_watermarks to find the last 
+    GradCafe result ID that was already processed.
+    """
+    # Default is now 3 pages
+    start_page = payload.get("start_page", 1)
+    end_page = payload.get("end_page", 3)
 
-    if not records:
-        return
+    raw_records = scrape_data(start_page=start_page, end_page=end_page)
+    cleaned_records = clean_data(raw_records)
 
-    insert_applicants(conn, records)
+    inserted_count = insert_scraped_applicants(conn, cleaned_records)
+    print(f"Inserted {inserted_count} newly scraped applicants.")
 
-    max_seen = max(result_id(record.get("url")) for record in records)
-    update_last_seen(conn, str(max_seen))
+    urls = [
+        record.get("URL link to applicant entry")
+        for record in cleaned_records
+        if record.get("URL link to applicant entry")
+    ]
 
+    ids = [result_id(url) for url in urls]
+    ids = [value for value in ids if value is not None]
 
-# def handle_recompute_analytics(conn, payload):
-#     with conn.cursor() as cur:
-#         cur.execute("SELECT COUNT(*) FROM applicants;")
-# def handle_recompute_analytics(conn, payload):
-#     with conn.cursor() as cur:
-#         for query in QUERIES:
-#             params = query.get("params")
+    if ids:
+        update_last_seen(conn, str(max(ids)))
 
-#             if params is None:
-#                 cur.execute(query["sql"])
-#             else:
-#                 cur.execute(query["sql"], params)
-
-#             rows = cur.fetchall()
-#             columns = [desc.name for desc in cur.description]
-
-#             print(query["number"], columns, rows)
-def handle_recompute_analytics(conn, payload):
+def handle_recompute_analytics(conn, _payload):
+    """
+    runs all the analytics SQL queries and saves their results into the 
+    analytics_results table.
+    """
     with conn.cursor() as cur:
         for query in QUERIES:
             params = query.get("params")
@@ -160,7 +252,8 @@ def handle_recompute_analytics(conn, payload):
                 cur.execute(query["sql"], params)
 
             columns = [desc.name for desc in cur.description]
-            rows = [[str(value) if value is not None else None for value in row] for row in cur.fetchall()]
+            rows = [[str(value) if value is not None else None
+                     for value in row] for row in cur.fetchall()]
 
             cur.execute(
                 """
@@ -196,10 +289,18 @@ TASKS = {
     "recompute_analytics": handle_recompute_analytics,
 }
 
-
-def process_message(channel, method, properties, body):
-    db_conn = psycopg.connect(os.environ["DATABASE_URL"])
-
+def process_message(channel, method, _properties, body):
+    """
+    the function that handles one RabbitMQ message.
+    The message is expected to look something like:
+        {
+        "kind": "recompute_analytics",
+        "payload": {}
+         }
+    """
+    # First, it opens a PostgreSQL connection using DATABASE_URL from the environment.
+    db_conn = psycopg.connect(os.environ["DATABASE_URL"])  # pylint: disable=no-member
+    # Then it tries to process the message
     try:
         message = json.loads(body.decode("utf-8"))
         kind = message["kind"]
@@ -209,22 +310,24 @@ def process_message(channel, method, properties, body):
         handler(db_conn, payload)
         # Commit only on success
         # ack means acknowledge.
-        db_conn.commit()
+        db_conn.commit()  # pylint: disable=no-member
         channel.basic_ack(delivery_tag=method.delivery_tag)
 
     except Exception:
         # rollback on error
         # nack means negative acknowledge
-        db_conn.rollback()
+        db_conn.rollback()  # pylint: disable=no-member
         channel.basic_nack(delivery_tag=method.delivery_tag, requeue=False)
         raise
 
     finally:
-        db_conn.close()
+        db_conn.close()  # pylint: disable=no-member
 
 
 def main():
+    """main function"""
     rabbit_conn, channel = open_rabbit_channel()
+    _ = rabbit_conn
 
     channel.basic_consume(
         queue=QUEUE,
